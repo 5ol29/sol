@@ -139,10 +139,17 @@
         tr:nth-child(even) {
             background-color: #f2f2f2;
         }
+        /* TF-IDF 최고 점수 하이라이트 (붉은색) */
         .highlight {
             font-weight: bold;
             color: #d9534f;
             background-color: #fce8e6;
+        }
+        /* TF 최고 점수 하이라이트 (파란색) */
+        .highlight-tf {
+            font-weight: bold;
+            color: #0056b3;
+            background-color: #e6f2ff;
         }
 
         /* 팝업 모달 스타일 */
@@ -219,6 +226,7 @@
     
     <div class="info-box">
         <b>💡 계산 및 하이라이트 안내</b><br>
+        • <b>파란색 하이라이트</b>: 각 기사별로 <b>가장 높은 TF(단순 빈도수)</b>를 기록한 칸을 강조합니다.<br>
         • <b>붉은색 하이라이트</b>: 각 기사별로 <b>가장 높은 TF-IDF 점수(핵심 키워드)</b>를 기록한 칸을 강조합니다.<br>
         • <b>TF (단어 빈도)</b>: 각 기사에 등장하는 단어들의 빈도수<br>
         • <b>DF (문서 빈도)</b>: 단어별로 그 단어가 등장하는 기사의 개수(1~3)<br>
@@ -266,7 +274,7 @@
     <button class="btn-calc" onclick="calculateTFIDF()">TF-IDF 계산하기</button>
 
     <div class="result-section" id="resultSection">
-        <h2>📊 계산 결과 (기사별 최고 TF-IDF 단어 하이라이트)</h2>
+        <h2>📊 계산 결과 (기사별 최고 TF 및 TF-IDF 단어 하이라이트)</h2>
         <table id="resultTable">
             <thead>
                 <tr>
@@ -300,13 +308,13 @@
             </div>
             <div>
                 <b>🎙️기사 A</b>
-                <div class="example-article" id="exText1">최근 인공지능 기술 발전 현황이 주목받고 있다. 특히 의료 분야에서 인공지능 기술 활용이 늘고 있다. 의사 분석에 따르면 인공지능 진단 정확도가 높아졌으며 환자 치료 만족도 역시 올라갔다. 앞으로 의료 현장에서 인공지능 기술 발전 영향력은 더욱 커질 전망이다.</div>
+                <div class="example-article" id="exText1">최근 글로벌 시장에서 기술 경쟁이 치열해지는 가운데, 의료 현장에서는 인공지능 관련 기술 도입이 빠르게 확산되고 있습니다. 인공지능 기반의 영상 진단 기술은 의사의 분석 정확도를 획기적으로 높여주고 있으며, 인공지능 맞춤형 치료 기술을 적용받은 환자들의 만족도 역시 크게 상승했습니다. 의료 전문가들은 인공지능 바이오 기술이 미래 정밀 의료 기술의 핵심이 될 것으로 전망하고 있습니다.</div>
 
                 <b>🎙️기사 B</b>
-                <div class="example-article" id="exText2">최근 자율주행 기술 발전 현황이 주목받고 있다. 자동차 업계는 자율주행 운전 시스템 완성도를 높이고 있다. 도로 시험 운행 결과 자율주행 안전성이 입증되었으며 운전자 편의성도 개선되었다. 앞으로 도로 위에서 자율주행 기술 발전 영향력은 더욱 커질 전망이다.</div>
+                <div class="example-article" id="exText2">최근 글로벌 시장에서 기술 경쟁이 치열해지는 가운데, 자동차 업계에서는 자율주행 관련 기술 개발에 박차를 가하고 있습니다. 차세대 기술을 탑재한 자율주행 차량은 도로 시험 운행을 통해 안전 기술의 입증을 완료하였으며, 운전자 편의 기술도 대폭 개선되었습니다. 모빌리티 전문가들은 자율주행 기술이 미래 교통 시스템 기술의 핵심이 될 것으로 전망하고 있습니다.</div>
 
                 <b>🎙️기사 C</b>
-                <div class="example-article" id="exText3">최근 우주 탐사 기술 발전 현황이 주목받고 있다. 우주선 발사 성공으로 새로운 우주 탐사 시대가 열렸다. 과학자 연구 결과 우주 환경 데이터 수집이 가능해졌으며 우주 탐사 범위가 넓어졌다. 앞으로 우주 산업에서 우주 탐사 기술 발전 영향력은 더욱 커질 전망이다.</div>
+                <div class="example-article" id="exText3">최근 글로벌 시장에서 기술 경쟁이 치열해지는 가운데, 우주 산업에서는 우주 탐사 관련 기술 혁신이 눈부시게 이뤄지고 있습니다. 첨단 기술을 적용한 우주선 발사 성공으로 대용량 데이터 수집 기술이 완성되었으며, 이를 통해 우주 탐사 기술의 범위를 넓히게 되었습니다. 우주 공학 전문가들은 우주 탐사 기술이 미래 국가 기술력의 핵심이 될 것으로 전망하고 있습니다.</div>
             </div>
             <div class="modal-footer">
                 <button class="btn-apply" onclick="applyExample()">이 예시 기사로 자동 입력하기</button>
@@ -434,25 +442,37 @@
             const topN = parseInt(document.getElementById('topN').value);
             const selectedWords = wordStats.slice(0, topN);
 
+            // 기사별 TF-IDF 최고값 계산
             const max1 = Math.max(...selectedWords.map(w => w.tfidf1));
             const max2 = Math.max(...selectedWords.map(w => w.tfidf2));
             const max3 = Math.max(...selectedWords.map(w => w.tfidf3));
+
+            // 기사별 TF 최고값 계산
+            const maxTf1 = Math.max(...selectedWords.map(w => w.tf1));
+            const maxTf2 = Math.max(...selectedWords.map(w => w.tf2));
+            const maxTf3 = Math.max(...selectedWords.map(w => w.tf3));
 
             const tbody = document.getElementById('resultBody');
             tbody.innerHTML = '';
 
             selectedWords.forEach((item, index) => {
+                // TF-IDF 하이라이트 조건
                 const isMax1 = item.tfidf1 > 0 && item.tfidf1 === max1;
                 const isMax2 = item.tfidf2 > 0 && item.tfidf2 === max2;
                 const isMax3 = item.tfidf3 > 0 && item.tfidf3 === max3;
+
+                // TF 하이라이트 조건
+                const isMaxTf1 = item.tf1 > 0 && item.tf1 === maxTf1;
+                const isMaxTf2 = item.tf2 > 0 && item.tf2 === maxTf2;
+                const isMaxTf3 = item.tf3 > 0 && item.tf3 === maxTf3;
 
                 const row = `
                     <tr>
                         <td>${index + 1}</td>
                         <td><b>${item.word}</b></td>
-                        <td>${item.tf1}</td>
-                        <td>${item.tf2}</td>
-                        <td>${item.tf3}</td>
+                        <td class="${isMaxTf1 ? 'highlight-tf' : ''}">${item.tf1}</td>
+                        <td class="${isMaxTf2 ? 'highlight-tf' : ''}">${item.tf2}</td>
+                        <td class="${isMaxTf3 ? 'highlight-tf' : ''}">${item.tf3}</td>
                         <td>${item.df}</td>
                         <td>${item.idf.toFixed(2)}</td>
                         <td class="${isMax1 ? 'highlight' : ''}">${item.tfidf1.toFixed(2)}</td>
