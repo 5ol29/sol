@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>수업 과제 제출함</title>
+  <title>수업 과제 제출하기</title>
   <style>
     :root {
       --bg-color: #f8fafc;
@@ -21,16 +21,17 @@
       justify-content: center;
     }
     .card {
-      background: var(--card-bg);
+      background: #fff7ed; /* 은은한 주황색 배경 */
+      border: 1px solid #fdba74;
       border-radius: var(--radius);
-      box-shadow: var(--shadow);
+      box-shadow: 0 4px 12px rgba(249, 115, 22, 0.15);
       padding: 28px;
       width: 100%;
       max-width: 480px;
     }
-    h2 { margin-bottom: 20px; color: #1e3a8a; font-size: 1.3rem; }
+    h2 { margin-bottom: 20px; color: #c2410c; font-size: 1.3rem; }
     .form-group { margin-bottom: 18px; }
-    label { display: block; font-weight: bold; margin-bottom: 6px; font-size: 0.95rem; }
+    label { display: block; font-weight: bold; margin-bottom: 6px; font-size: 0.95rem; color: #9a3412; }
     input[type="text"], input[type="file"] {
       width: 100%;
       padding: 10px;
@@ -38,11 +39,12 @@
       border-radius: 8px;
       box-sizing: border-box;
       font-size: 0.95rem;
+      background: #ffffff;
     }
     .btn-submit {
       width: 100%;
       padding: 12px;
-      background: var(--primary);
+      background: #ea580c; /* 주황색 제출 버튼 */
       color: white;
       border: none;
       border-radius: 8px;
@@ -51,7 +53,7 @@
       cursor: pointer;
       transition: background 0.2s;
     }
-    .btn-submit:hover { background: #1d4ed8; }
+    .btn-submit:hover { background: #c2410c; }
     .btn-submit:disabled { background: #94a3b8; cursor: not-allowed; }
     #status { margin-top: 15px; font-weight: bold; text-align: center; }
   </style>
@@ -72,19 +74,29 @@
   </div>
 
   <div class="form-group">
-    <label for="fileInput">제출할 파일 선택</label>
-    <input type="file" id="fileInput">
+    <label for="fileInput">제출할 파일 선택 (다중 선택 가능)</label>
+    <!-- multiple 속성 추가 -->
+    <input type="file" id="fileInput" multiple>
   </div>
 
-  <button class="btn-submit" id="submitBtn" onclick="uploadFile()">구글 드라이브로 제출하기</button>
+  <button class="btn-submit" id="submitBtn" onclick="uploadFiles()">구글 드라이브로 제출하기</button>
   <div id="status"></div>
 </div>
 
 <script>
-  // 🔴 2단계에서 복사한 Google Apps Script 웹 앱 URL을 여기에 붙여넣으세요.
   const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyHKCSYVm_sT-ugpOq0_GzbGOuE1Je4HxCDDBprooF09sNkTnqLsciA-JqStwBBfgeG/exec";
 
-  function uploadFile() {
+  // 파일을 Base64 문자열로 읽는 함수
+  function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = error => reject(error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function uploadFiles() {
     const studentInfo = document.getElementById('studentInfo').value.trim();
     const taskTitle = document.getElementById('taskTitle').value.trim();
     const fileInput = document.getElementById('fileInput');
@@ -100,55 +112,55 @@
       return;
     }
     if (fileInput.files.length === 0) {
-      alert('제출할 파일을 선택해주세요.');
+      alert('제출할 파일을 1개 이상 선택해주세요.');
       return;
     }
 
-    const file = fileInput.files[0];
-    const reader = new FileReader();
-
+    const files = Array.from(fileInput.files);
     submitBtn.disabled = true;
-    statusDiv.style.color = "#2563eb";
-    statusDiv.innerText = "⏳ 파일 업로드 중입니다...";
+    statusDiv.style.color = "#ea580c";
+    statusDiv.innerText = `⏳ 총 ${files.length}개의 파일을 업로드 중입니다...`;
 
-    reader.onload = function(e) {
-      const base64Data = e.target.result.split(',')[1];
-      
-      const payload = {
-        studentInfo: studentInfo,
-        taskTitle: taskTitle,
-        fileName: file.name,
-        fileData: base64Data,
-        mimeType: file.type
-      };
+    try {
+      // 선택한 파일들을 하나씩 순차적으로 전송
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        statusDiv.innerText = `⏳ 업로드 중... (${i + 1}/${files.length}) : ${file.name}`;
 
-      fetch(GAS_WEB_APP_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.result === 'success') {
-          statusDiv.style.color = "#16a34a";
-          statusDiv.innerText = "✅ 제출이 성공적으로 완료되었습니다!";
-          document.getElementById('fileInput').value = "";
-          document.getElementById('taskTitle').value = "";
-        } else {
-          statusDiv.style.color = "#ef4444";
-          statusDiv.innerText = "❌ 오류 발생: " + data.message;
+        const base64Data = await readFileAsBase64(file);
+        
+        const payload = {
+          studentInfo: studentInfo,
+          taskTitle: taskTitle,
+          fileName: file.name,
+          fileData: base64Data,
+          mimeType: file.type,
+          fileIndex: files.length > 1 ? (i + 1) : 0 // 파일이 여러 개일 때만 번호 붙임
+        };
+
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        if (data.result !== 'success') {
+          throw new Error(data.message || `${file.name} 업로드 실패`);
         }
-      })
-      .catch(err => {
-        statusDiv.style.color = "#ef4444";
-        statusDiv.innerText = "❌ 업로드 실패. 다시 시도해주세요.";
-        console.error(err);
-      })
-      .finally(() => {
-        submitBtn.disabled = false;
-      });
-    };
+      }
 
-    reader.readAsDataURL(file);
+      statusDiv.style.color = "#16a34a";
+      statusDiv.innerText = `✅ 총 ${files.length}개의 파일이 성공적으로 제출되었습니다!`;
+      document.getElementById('fileInput').value = "";
+      document.getElementById('taskTitle').value = "";
+
+    } catch (err) {
+      statusDiv.style.color = "#ef4444";
+      statusDiv.innerText = "❌ 오류 발생: " + err.message;
+      console.error(err);
+    } finally {
+      submitBtn.disabled = false;
+    }
   }
 </script>
 
