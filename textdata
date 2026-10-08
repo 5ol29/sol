@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>텍스트 데이터 정보 추출하기: TF / DF / TF-IDF 계산기</title>
+    <style>
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            max-width: 950px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+        }
+        .info-box {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        .example-btn-container {
+            margin-top: 10px;
+            text-align: right;
+        }
+        .btn-example {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .btn-example:hover {
+            background-color: #5a6268;
+        }
+        .article-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .article-box {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .article-box label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        textarea {
+            width: 100%;
+            height: 160px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            resize: vertical;
+            box-sizing: border-box;
+            font-size: 0.9rem;
+        }
+        .stopword-container {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .stopword-container label {
+            font-weight: bold;
+            color: #856404;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .stopword-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+        }
+        .option-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        select {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 0.95rem;
+        }
+        .btn-calc {
+            width: 100%;
+            padding: 15px;
+            background-color: #4A90E2;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-calc:hover {
+            background-color: #357ABD;
+        }
+        .result-section {
+            margin-top: 30px;
+            display: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        /* TF-IDF 최고 점수 하이라이트 (붉은색) */
+        .highlight {
+            font-weight: bold;
+            color: #d9534f;
+            background-color: #fce8e6;
+        }
+        /* TF 최고 점수 하이라이트 (파란색) */
+        .highlight-tf {
+            font-weight: bold;
+            color: #0056b3;
+            background-color: #e6f2ff;
+        }
+
+        /* 팝업 모달 스타일 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            max-width: 650px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #888;
+        }
+        .example-article {
+            background-color: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 10px;
+            margin-bottom: 12px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+        .modal-footer {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .btn-apply {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-apply:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>📰 텍스트 데이터 정보 추출하기: TF / DF / TF-IDF 계산기(by 솔쌤)</h1>
+    
+    <div class="info-box">
+        <b>💡 계산 및 하이라이트 안내</b><br>
+        • <b>파란색 하이라이트</b>: 각 기사별로 <b>가장 높은 TF(단순 빈도수)</b>를 기록한 칸을 강조합니다.<br>
+        • <b>붉은색 하이라이트</b>: 각 기사별로 <b>가장 높은 TF-IDF 점수(핵심 키워드)</b>를 기록한 칸을 강조합니다.<br>
+        • <b>TF (단어 빈도)</b>: 각 기사에 등장하는 단어들의 빈도수<br>
+        • <b>DF (문서 빈도)</b>: 단어별로 그 단어가 등장하는 기사의 개수(1~3)<br>
+        • <b>IDF (역문서 빈도)</b>: 전체 문서의 개수를 n이라고 할 때, n/DF<br>
+        • <b>TF-IDF</b>: TF x IDF의 값
+        
+        <div class="example-btn-container">
+            <button class="btn-example" onclick="openModal()">💡 예시 기사 적용해보기</button>
+        </div>
+    </div>
+
+    <div class="article-container">
+        <div class="article-box">
+            <label for="doc1">기사 A</label>
+            <textarea id="doc1" placeholder="첫 번째 기사(A) 내용을 입력하세요..."></textarea>
+        </div>
+        <div class="article-box">
+            <label for="doc2">기사 B</label>
+            <textarea id="doc2" placeholder="두 번째 기사(B) 내용을 입력하세요..."></textarea>
+        </div>
+        <div class="article-box">
+            <label for="doc3">기사 C</label>
+            <textarea id="doc3" placeholder="세 번째 기사(C) 내용을 입력하세요..."></textarea>
+        </div>
+    </div>
+
+    <!-- 불용어 입력 영역 -->
+    <div class="stopword-container">
+        <label for="stopwords">🚫 추가 불용어(제외할 단어) 목록</label>
+        <input type="text" id="stopwords" class="stopword-input" 
+               value="그리고, 하지만, 그래서, 그러나, 또한, 및, 있다, 최근, 앞으로도, 더욱" 
+               placeholder="제외하고 싶은 단어를 쉼표(,)나 띄어쓰기로 구분해서 입력하세요.">
+    </div>
+
+    <div class="option-container">
+        <label for="topN">표시할 단어 개수:</label>
+        <select id="topN">
+            <option value="10">상위 10개 단어</option>
+            <option value="15" selected>상위 15개 단어</option>
+            <option value="20">상위 20개 단어</option>
+            <option value="999">전체 단어 보기</option>
+        </select>
+    </div>
+
+    <button class="btn-calc" onclick="calculateTFIDF()">TF-IDF 계산하기</button>
+
+    <div class="result-section" id="resultSection">
+        <h2>📊 계산 결과 (기사별 최고 TF 및 TF-IDF 단어 하이라이트)</h2>
+        <table id="resultTable">
+            <thead>
+                <tr>
+                    <th rowspan="2">순위</th>
+                    <th rowspan="2">단어</th>
+                    <th colspan="3">TF (단순 빈도수)</th>
+                    <th rowspan="2">DF</th>
+                    <th rowspan="2">IDF<br>(3 / DF)</th>
+                    <th colspan="3">TF-IDF (TF × IDF)</th>
+                </tr>
+                <tr>
+                    <th>기사 A</th>
+                    <th>기사 B</th>
+                    <th>기사 C</th>
+                    <th>기사 A</th>
+                    <th>기사 B</th>
+                    <th>기사 C</th>
+                </tr>
+            </thead>
+            <tbody id="resultBody">
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 팝업 모달 -->
+    <div class="modal-overlay" id="exampleModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📰 수업용 예시 기사 미리보기</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div>
+                <b>🎙️기사 A</b>
+                <div class="example-article" id="exText1">최근 글로벌 시장에서 기술 경쟁이 치열해지는 가운데, 의료 현장에서는 인공지능 관련 기술 도입이 빠르게 확산되고 있습니다. 인공지능 기반의 영상 진단 기술은 의사의 분석 정확도를 획기적으로 높여주고 있으며, 인공지능 맞춤형 치료 기술을 적용받은 환자들의 만족도 역시 크게 상승했습니다. 의료 전문가들은 인공지능 바이오 기술이 미래 정밀 의료 기술의 핵심이 될 것으로 전망하고 있습니다.</div>
+
+                <b>🎙️기사 B</b>
+                <div class="example-article" id="exText2">최근 글로벌 시장에서 기술 경쟁이 치열해지는 가운데, 자동차 업계에서는 자율주행 관련 기술 개발에 박차를 가하고 있습니다. 차세대 기술을 탑재한 자율주행 차량은 도로 시험 운행을 통해 안전 기술의 입증을 완료하였으며, 운전자 편의 기술도 대폭 개선되었습니다. 모빌리티 전문가들은 자율주행 기술이 미래 교통 시스템 기술의 핵심이 될 것으로 전망하고 있습니다.</div>
+
+                <b>🎙️기사 C</b>
+                <div class="example-article" id="exText3">최근 글로벌 시장에서 기술 경쟁이 치열해지는 가운데, 우주 산업에서는 우주 탐사 관련 기술 혁신이 눈부시게 이뤄지고 있습니다. 첨단 기술을 적용한 우주선 발사 성공으로 대용량 데이터 수집 기술이 완성되었으며, 이를 통해 우주 탐사 기술의 범위를 넓히게 되었습니다. 우주 공학 전문가들은 우주 탐사 기술이 미래 국가 기술력의 핵심이 될 것으로 전망하고 있습니다.</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-apply" onclick="applyExample()">이 예시 기사로 자동 입력하기</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 모달 열기/닫기
+        function openModal() {
+            document.getElementById('exampleModal').style.display = 'flex';
+        }
+        function closeModal() {
+            document.getElementById('exampleModal').style.display = 'none';
+        }
+
+        // 예시 기사 적용하기
+        function applyExample() {
+            document.getElementById('doc1').value = document.getElementById('exText1').innerText;
+            document.getElementById('doc2').value = document.getElementById('exText2').innerText;
+            document.getElementById('doc3').value = document.getElementById('exText3').innerText;
+            closeModal();
+            alert('예시 기사가 입력창에 적용되었습니다! [TF-IDF 계산하기] 버튼을 눌러보세요.');
+        }
+
+        const JOSA_LIST = [
+            '에서부터', '으로부터', '에게서', '한테서', '에서는', '으로는', '에의', '과의', '와의',
+            '에서', '으로', '에게', '한테', '까지', '부터', '처럼', '만큼', '조차', '마저', '따라',
+            '은', '는', '이', '가', '을', '를', '의', '에', '와', '과', '도', '만', '로'
+        ];
+
+        function stripJosa(word) {
+            if (word.length <= 1) return word;
+            for (const josa of JOSA_LIST) {
+                if (word.endsWith(josa) && word.length > josa.length) {
+                    return word.slice(0, -josa.length);
+                }
+            }
+            return word;
+        }
+
+        function tokenize(text) {
+            return text
+                .replace(/[^\w\s가-힣]/g, '')
+                .split(/\s+/)
+                .filter(word => word.length > 0)
+                .map(word => stripJosa(word));
+        }
+
+        function calculateTFIDF() {
+            const docs = [
+                document.getElementById('doc1').value,
+                document.getElementById('doc2').value,
+                document.getElementById('doc3').value
+            ];
+
+            if (docs.some(doc => doc.trim() === "")) {
+                alert("3개 기사의 내용을 모두 입력해 주세요!");
+                return;
+            }
+
+            const stopwordText = document.getElementById('stopwords').value;
+            const stopwordSet = new Set(
+                stopwordText
+                    .split(/[\s,]+/)
+                    .map(w => w.trim())
+                    .filter(w => w.length > 0)
+            );
+
+            const tokenizedDocs = docs.map(doc => tokenize(doc));
+
+            const tfList = tokenizedDocs.map(tokens => {
+                const tf = {};
+                tokens.forEach(token => {
+                    if (!stopwordSet.has(token) && token.length > 0) {
+                        tf[token] = (tf[token] || 0) + 1;
+                    }
+                });
+                return tf;
+            });
+
+            const allWords = new Set();
+            tfList.forEach(tf => {
+                for (const word in tf) {
+                    allWords.add(word);
+                }
+            });
+
+            if (allWords.size === 0) {
+                alert("분석할 단어가 없습니다.");
+                return;
+            }
+
+            const wordStats = [];
+            allWords.forEach(word => {
+                const tf1 = tfList[0][word] || 0;
+                const tf2 = tfList[1][word] || 0;
+                const tf3 = tfList[2][word] || 0;
+
+                let df = 0;
+                if (tf1 > 0) df++;
+                if (tf2 > 0) df++;
+                if (tf3 > 0) df++;
+
+                const idf = 3 / df;
+                const tfidf1 = tf1 * idf;
+                const tfidf2 = tf2 * idf;
+                const tfidf3 = tf3 * idf;
+
+                const maxTFIDF = Math.max(tfidf1, tfidf2, tfidf3);
+
+                wordStats.push({
+                    word, tf1, tf2, tf3, df, idf,
+                    tfidf1, tfidf2, tfidf3, maxTFIDF
+                });
+            });
+
+            wordStats.sort((a, b) => {
+                if (b.maxTFIDF !== a.maxTFIDF) {
+                    return b.maxTFIDF - a.maxTFIDF;
+                }
+                return (b.tf1 + b.tf2 + b.tf3) - (a.tf1 + a.tf2 + a.tf3);
+            });
+
+            const topN = parseInt(document.getElementById('topN').value);
+            const selectedWords = wordStats.slice(0, topN);
+
+            // 기사별 TF-IDF 최고값 계산
+            const max1 = Math.max(...selectedWords.map(w => w.tfidf1));
+            const max2 = Math.max(...selectedWords.map(w => w.tfidf2));
+            const max3 = Math.max(...selectedWords.map(w => w.tfidf3));
+
+            // 기사별 TF 최고값 계산
+            const maxTf1 = Math.max(...selectedWords.map(w => w.tf1));
+            const maxTf2 = Math.max(...selectedWords.map(w => w.tf2));
+            const maxTf3 = Math.max(...selectedWords.map(w => w.tf3));
+
+            const tbody = document.getElementById('resultBody');
+            tbody.innerHTML = '';
+
+            selectedWords.forEach((item, index) => {
+                // TF-IDF 하이라이트 조건
+                const isMax1 = item.tfidf1 > 0 && item.tfidf1 === max1;
+                const isMax2 = item.tfidf2 > 0 && item.tfidf2 === max2;
+                const isMax3 = item.tfidf3 > 0 && item.tfidf3 === max3;
+
+                // TF 하이라이트 조건
+                const isMaxTf1 = item.tf1 > 0 && item.tf1 === maxTf1;
+                const isMaxTf2 = item.tf2 > 0 && item.tf2 === maxTf2;
+                const isMaxTf3 = item.tf3 > 0 && item.tf3 === maxTf3;
+
+                const row = `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td><b>${item.word}</b></td>
+                        <td class="${isMaxTf1 ? 'highlight-tf' : ''}">${item.tf1}</td>
+                        <td class="${isMaxTf2 ? 'highlight-tf' : ''}">${item.tf2}</td>
+                        <td class="${isMaxTf3 ? 'highlight-tf' : ''}">${item.tf3}</td>
+                        <td>${item.df}</td>
+                        <td>${item.idf.toFixed(2)}</td>
+                        <td class="${isMax1 ? 'highlight' : ''}">${item.tfidf1.toFixed(2)}</td>
+                        <td class="${isMax2 ? 'highlight' : ''}">${item.tfidf2.toFixed(2)}</td>
+                        <td class="${isMax3 ? 'highlight' : ''}">${item.tfidf3.toFixed(2)}</td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+
+            document.getElementById('resultSection').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
