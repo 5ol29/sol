@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>[인공지능 수학] RGB 행렬 시각화 실습하기</title>
+  <!-- KaTeX 수식 라이브러리 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --primary: #2563eb;
+      --r-color: #ef4444;
+      --g-color: #16a34a;
+      --b-color: #2563eb;
+      --radius: 12px;
+      --shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      padding: 20px;
+    }
+    .container { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+    header {
+      background: var(--card-bg); padding: 18px 24px; border-radius: var(--radius);
+      box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+    }
+    
+    /* 학번/이름 카드 */
+    .student-info-card {
+      background: #D9E5FF;
+      padding: 16px 24px;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 12px rgba(56, 189, 248, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .grid-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 900px) { .grid-layout { grid-template-columns: 1fr; } }
+    .card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: bold;
+      color: var(--primary);
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border-color);
+      margin-bottom: 4px;
+    }
+
+    /* 프리셋 및 버튼 그룹 */
+    .preset-btn-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn { 
+      padding: 8px 14px; 
+      border-radius: 8px; 
+      border: 1px solid var(--border-color); 
+      background: #fff; 
+      color: var(--text-main);
+      font-weight: 600; 
+      font-size: 0.85rem; 
+      cursor: pointer; 
+      transition: all 0.2s ease; 
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-decoration: none;
+      line-height: 1.2;
+    }
+    .btn:hover { background: #f1f5f9; }
+    
+    /* 클릭 시 활성화된 버튼 전용 클래스 */
+    .btn-preset-active {
+      background: #7c3aed !important;
+      color: #ffffff !important;
+      border-color: #7c3aed !important;
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
+    }
+    
+    .btn-primary { background: var(--primary); color: #fff; border: none; }
+    .btn-primary:hover { background: #1d4ed8; }
+
+    .btn-askmath {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+    }
+    .btn-askmath:hover {
+      background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(2, 132, 199, 0.35);
+    }
+    .btn-large { padding: 14px 24px; font-size: 1.05rem; width: 100%; border-radius: 10px; }
+    
+    .channel-block { border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; }
+    .channel-block.red { border-left: 5px solid var(--r-color); }
+    .channel-block.green { border-left: 5px solid var(--g-color); }
+    .channel-block.blue { border-left: 5px solid var(--b-color); }
+    
+    textarea.matrix-textarea {
+      width: 100%; height: 75px; font-family: monospace; font-size: 0.95rem; padding: 8px;
+      border: 1px solid var(--border-color); border-radius: 6px; resize: vertical; margin-top: 6px;
+    }
+
+    .single-previews { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center; }
+    .preview-box { border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background: #fafafa; }
+    canvas { image-rendering: pixelated; width: 100%; max-width: 120px; height: auto; border: 1px solid #cbd5e1; background: #000; border-radius: 4px; }
+    
+    .combined-preview { text-align: center; padding: 16px; border: 1px solid var(--border-color); border-radius: 8px; background: #f8fafc; }
+    .combined-preview canvas { width: 180px; height: 180px; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+
+    .problem-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; font-size: 0.95rem; line-height: 1.6; }
+    .worksheet-section { border-radius: 12px; background: #fff; display: flex; flex-direction: column; gap: 14px; }
+    textarea.quiz-answer { width: 100%; height: 65px; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.9rem; font-family: inherit; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- 헤더 -->
+  <header>
+    <div>
+      <h1 style="font-size: 1.3rem;">🎨 [인공지능 수학] RGB 행렬 시각화 실습하기</h1>
+    </div>   
+  </header>
+
+  <!-- 학번 / 이름 입력 카드 -->
+  <div class="student-info-card">
+    <label style="font-size: 1.05rem; font-weight: 800; color: #1e3a8a; white-space: nowrap;">✏️ 학번 / 이름 :</label>
+    <input type="text" id="studentInfo" style="width: 100%; max-width: 360px; padding: 10px 14px; border: 2px solid #0284c7; border-radius: 8px; font-size: 1rem; font-weight: bold; background: #ffffff;" placeholder="예: 20901 김모락">
+  </div>
+
+  <!-- 개별 실습하기 영역 -->
+  <div class="card">
+    <div class="section-title">💻 개별 실습하기</div>
+    
+    <!-- 프리셋 버튼 및 외부 링크 버튼 그룹 -->
+    <div class="preset-btn-group">
+      <button id="btnPresetBook" class="btn btn-preset-active" onclick="loadBookPreset()">📚 교과서 문제 예제(p87) (2x2)</button>
+      <button id="btnPresetRgb" class="btn" onclick="loadPreset('rgb')">🔴🟢🔵 RGB (3x3)</button>
+      <button id="btnPresetGradient" class="btn" onclick="loadPreset('gradient')">🌈 그라데이션 (10x10)</button>
+      <a href="https://askmath.kosac.re.kr/ai/imageAnaly/imageAnalysis.do?menuPos=7" 
+         target="_blank" 
+         rel="noopener noreferrer" 
+         class="btn btn-askmath">
+        🔗 10X10 픽셀 이미지 생성하기 (AskMath) ↗
+      </a>
+    </div>
+
+    <div class="grid-layout">
+      <!-- 1. R, G, B 행렬 입력 -->
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h2 style="font-size: 1.05rem;">1. R, G, B 행렬 입력</h2>
+          <div>
+            <label style="font-size: 0.85rem; font-weight:bold;">크기: </label>
+            <select id="matrixSize" onchange="changeSize(this.value)" style="padding: 4px 8px; border-radius: 6px;">
+              <option value="2">2 x 2 (교과서)</option>
+              <option value="3">3 x 3</option>
+              <option value="4">4 x 4</option>
+              <option value="5">5 x 5</option>
+              <option value="8">8 x 8</option>
+              <option value="10">10 x 10</option>
+            </select>
+            <button class="btn" style="padding: 3px 8px; font-size:0.75rem;" onclick="formatAll()">✨ 줄맞춤</button>
+          </div>
+        </div>
+
+        <div class="channel-block red">
+          <strong style="color:var(--r-color);">🔴 Red 행렬 (R)</strong>
+          <textarea id="areaR" class="matrix-textarea" oninput="draw()"></textarea>
+        </div>
+        <div class="channel-block green">
+          <strong style="color:var(--g-color);">🟢 Green 행렬 (G)</strong>
+          <textarea id="areaG" class="matrix-textarea" oninput="draw()"></textarea>
+        </div>
+        <div class="channel-block blue">
+          <strong style="color:var(--b-color);">🔵 Blue 행렬 (B)</strong>
+          <textarea id="areaB" class="matrix-textarea" oninput="draw()"></textarea>
+        </div>
+      </div>
+
+      <!-- 2. 시각화 결과 -->
+      <div style="display:flex; flex-direction:column; gap:12px;">
+        <h2 style="font-size: 1.05rem;">2. 시각화 결과</h2>
+        
+        <div>
+          <h3 style="font-size: 0.85rem; color: var(--text-muted); margin-bottom:8px;">[1단계] 단일 채널 프리뷰</h3>
+          <div class="single-previews">
+            <div class="preview-box">
+              <h4 style="font-size:0.8rem; color:var(--r-color);">Red Channel</h4>
+              <canvas id="canvasR" width="100" height="100"></canvas>
+            </div>
+            <div class="preview-box">
+              <h4 style="font-size:0.8rem; color:var(--g-color);">Green Channel</h4>
+              <canvas id="canvasG" width="100" height="100"></canvas>
+            </div>
+            <div class="preview-box">
+              <h4 style="font-size:0.8rem; color:var(--b-color);">Blue Channel</h4>
+              <canvas id="canvasB" width="100" height="100"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 style="font-size: 0.85rem; color: var(--text-muted); margin-bottom:8px;">[2단계] RGB 합성 최종 이미지</h3>
+          <div class="combined-preview">
+            <canvas id="canvasCombined" width="180" height="180"></canvas>
+            <div id="pixelInfo" style="font-size:0.8rem; margin-top:8px; color:var(--text-muted); min-height:20px;">
+              마우스를 올리면 픽셀 RGB 값이 표시됩니다.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- <교과서 탐구 활동> 영역 -->
+  <div class="card">
+    <div class="section-title">📖 교과서 탐구 활동</div>
+    
+    <div class="worksheet-section">
+      <!-- 교과서 문제 박스 -->
+      <div class="problem-box">
+        <p style="margin-top:6px;">다음은 4개의 픽셀로 구성된 컬러 이미지에 대하여 각 픽셀의 RGB 색상 정보를 분리하여 세 행렬 <span id="mathR"></span>, <span id="mathG"></span>, <span id="mathB"></span>로 나타낸 것이다.</p>
+        <div id="mathEquations" style="text-align:center; margin:10px 0; font-size:1.05rem;"></div>
+      </div>
+
+      <div>
+        <span style="background:#6366f1; color:#fff; font-size:0.75rem; padding:2px 6px; border-radius:4px; font-weight:bold;">단계 1</span>
+        <p style="font-size:0.85rem; font-weight:bold; margin-top:4px;">네 픽셀 <span id="mathPixels1"></span>의 RGB 색상 정보를 각각 나타내시오.</p>
+        <textarea id="ans1" class="quiz-answer" placeholder="예: x11=(0, 0, 0), x12=(0, 0, 0)..."></textarea>
+      </div>
+
+      <div>
+        <span style="background:#6366f1; color:#fff; font-size:0.75rem; padding:2px 6px; border-radius:4px; font-weight:bold;">단계 2</span>
+        <p style="font-size:0.85rem; font-weight:bold; margin-top:4px;">네 픽셀 <span id="mathPixels2"></span>가 나타내는 색상을 각각 구하시오.</p>
+        <textarea id="ans2" class="quiz-answer" placeholder="예: x11은 흰색, x12는 검정색..."></textarea>
+      </div>
+
+      <div>
+        <span style="background:#059669; color:#fff; font-size:0.75rem; padding:2px 6px; border-radius:4px; font-weight:bold;">느낀 점 및 배운 점</span>
+        <p style="font-size:0.85rem; font-weight:bold; margin-top:4px;">활동을 통해 배운 내용이나 느낀 점, 더 알고 싶은 점을 자유롭게 작성하시오.</p>
+        <textarea id="ansReflection" class="quiz-answer" style="height:70px;" placeholder="행렬을 통한 이미지 표현 방식과 RGB 색상 조합에 대해 알게 된 점을 적어보세요."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 맨 아래 리포트 저장 버튼 -->
+  <div>
+    <button class="btn btn-primary btn-large" onclick="exportWorksheet()">📄 학습지 리포트 저장 (PNG)</button>
+  </div>
+</div>
+
+<script>
+  let N = 2;
+  let matrixR = [], matrixG = [], matrixB = [];
+
+  window.onload = function() {
+    renderMath();
+    loadBookPreset();
+    document.getElementById('canvasCombined').addEventListener('mousemove', handleHover);
+  };
+
+  function renderMath() {
+    katex.render("R", document.getElementById('mathR'));
+    katex.render("G", document.getElementById('mathG'));
+    katex.render("B", document.getElementById('mathB'));
+    katex.render("R = \\begin{pmatrix} 255 & 0 \\\\ 0 & 255 \\end{pmatrix}, \\quad G = \\begin{pmatrix} 0 & 255 \\\\ 0 & 255 \\end{pmatrix}, \\quad B = \\begin{pmatrix} 0 & 0 \\\\ 0 & 255 \\end{pmatrix}", document.getElementById('mathEquations'));
+    katex.render("x_{11}, x_{12}, x_{21}, x_{22}", document.getElementById('mathPixels1'));
+    katex.render("x_{11}, x_{12}, x_{21}, x_{22}", document.getElementById('mathPixels2'));
+  }
+
+  function setActivePresetButton(activeId) {
+    ['btnPresetBook', 'btnPresetRgb', 'btnPresetGradient'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) {
+        if (id === activeId) {
+          btn.classList.add('btn-preset-active');
+        } else {
+          btn.classList.remove('btn-preset-active');
+        }
+      }
+    });
+  }
+
+  function changeSize(val) {
+    N = parseInt(val, 10);
+    document.getElementById('matrixSize').value = N.toString();
+    matrixR = Array(N).fill(0).map(() => Array(N).fill(0));
+    matrixG = Array(N).fill(0).map(() => Array(N).fill(0));
+    matrixB = Array(N).fill(0).map(() => Array(N).fill(0));
+    formatAll();
+  }
+
+  function parseText(id) {
+    const text = document.getElementById(id).value;
+    const nums = text.replace(/,/g, ' ').trim().split(/\s+/).map(v => parseInt(v, 10)).filter(v => !isNaN(v));
+    const mat = Array(N).fill(0).map(() => Array(N).fill(0));
+    let idx = 0;
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        if (idx < nums.length) {
+          mat[r][c] = Math.min(255, Math.max(0, nums[idx]));
+          idx++;
+        }
+      }
+    }
+    return mat;
+  }
+
+  function draw() {
+    matrixR = parseText('areaR');
+    matrixG = parseText('areaG');
+    matrixB = parseText('areaB');
+
+    drawSingle('canvasR', matrixR, 'R');
+    drawSingle('canvasG', matrixG, 'G');
+    drawSingle('canvasB', matrixB, 'B');
+    drawCombined();
+  }
+
+  function formatAll() {
+    document.getElementById('areaR').value = matrixR.map(row => row.join(' ')).join('\n');
+    document.getElementById('areaG').value = matrixG.map(row => row.join(' ')).join('\n');
+    document.getElementById('areaB').value = matrixB.map(row => row.join(' ')).join('\n');
+    draw();
+  }
+
+  function drawSingle(id, mat, ch) {
+    const canvas = document.getElementById(id);
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.createImageData(N, N);
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        const i = (r * N + c) * 4;
+        const v = mat[r][c];
+        imgData.data[i] = ch === 'R' ? v : 0;
+        imgData.data[i+1] = ch === 'G' ? v : 0;
+        imgData.data[i+2] = ch === 'B' ? v : 0;
+        imgData.data[i+3] = 255;
+      }
+    }
+    const temp = document.createElement('canvas');
+    temp.width = N; temp.height = N;
+    temp.getContext('2d').putImageData(imgData, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(temp, 0, 0, canvas.width, canvas.height);
+  }
+
+  function drawCombined() {
+    const canvas = document.getElementById('canvasCombined');
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.createImageData(N, N);
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        const i = (r * N + c) * 4;
+        imgData.data[i] = matrixR[r][c];
+        imgData.data[i+1] = matrixG[r][c];
+        imgData.data[i+2] = matrixB[r][c];
+        imgData.data[i+3] = 255;
+      }
+    }
+    const temp = document.createElement('canvas');
+    temp.width = N; temp.height = N;
+    temp.getContext('2d').putImageData(imgData, 0, 0);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(temp, 0, 0, canvas.width, canvas.height);
+  }
+
+  function handleHover(e) {
+    const canvas = document.getElementById('canvasCombined');
+    const rect = canvas.getBoundingClientRect();
+    const col = Math.floor(((e.clientX - rect.left) / rect.width) * N);
+    const row = Math.floor(((e.clientY - rect.top) / rect.height) * N);
+
+    if (row >= 0 && row < N && col >= 0 && col < N) {
+      document.getElementById('pixelInfo').innerHTML = 
+        `위치 (${row+1}행, ${col+1}열) | <span style="color:red; font-weight:bold;">R: ${matrixR[row][col]}</span>, <span style="color:green; font-weight:bold;">G: ${matrixG[row][col]}</span>, <span style="color:blue; font-weight:bold;">B: ${matrixB[row][col]}</span>`;
+    }
+  }
+
+  function loadBookPreset() {
+    setActivePresetButton('btnPresetBook');
+    N = 2;
+    document.getElementById('matrixSize').value = "2";
+    matrixR = [[157, 185], [162, 128]];
+    matrixG = [[220, 0], [162, 128]];
+    matrixB = [[41, 185], [225, 0]];
+    document.getElementById('ans1').value = "";
+    document.getElementById('ans2').value = "";
+    document.getElementById('ansReflection').value = "";
+    formatAll();
+  }
+
+  function loadPreset(type) {
+    if (type === 'rgb') {
+      setActivePresetButton('btnPresetRgb');
+      N = 3;
+      document.getElementById('matrixSize').value = "3";
+      matrixR = [[255, 0, 0], [255, 255, 0], [255, 0, 255]];
+      matrixG = [[0, 255, 0], [255, 255, 0], [0, 255, 255]];
+      matrixB = [[0, 0, 255], [0, 0, 0], [255, 255, 255]];
+    } else if (type === 'gradient') {
+      setActivePresetButton('btnPresetGradient');
+      N = 10;
+      document.getElementById('matrixSize').value = "10";
+      matrixR = Array(10).fill(0).map((_, r) => Array(10).fill(0).map((_, c) => Math.floor(r * 28.3)));
+      matrixG = Array(10).fill(0).map((_, r) => Array(10).fill(0).map((_, c) => Math.floor(c * 28.3)));
+      matrixB = Array(10).fill(0).map((_, r) => Array(10).fill(0).map((_, c) => Math.floor((r + c) * 14.1)));
+    }
+    formatAll();
+  }
+
+  function drawMatrixOnCanvas(ctx, label, matrix, startX, startY) {
+    ctx.font = "bold 15px sans-serif";
+    ctx.fillStyle = "#1e293b";
+    ctx.fillText(label + " =", startX, startY + (N * 18) / 2 + 5);
+
+    const labelWidth = ctx.measureText(label + " = ").width;
+    const bracketX = startX + labelWidth + 5;
+    const cellWidth = N > 5 ? 32 : 42;
+    const rowHeight = 22;
+    const matrixWidth = N * cellWidth;
+    const matrixHeight = N * rowHeight;
+    const bracketWing = 8;
+
+    ctx.strokeStyle = "#1e293b";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(bracketX + bracketWing, startY);
+    ctx.lineTo(bracketX, startY);
+    ctx.lineTo(bracketX, startY + matrixHeight);
+    ctx.lineTo(bracketX + bracketWing, startY + matrixHeight);
+    
+    const rightX = bracketX + matrixWidth + 10;
+    ctx.moveTo(rightX - bracketWing, startY);
+    ctx.lineTo(rightX, startY);
+    ctx.lineTo(rightX, startY + matrixHeight);
+    ctx.lineTo(rightX - bracketWing, startY + matrixHeight);
+    ctx.stroke();
+
+    ctx.font = "13px monospace";
+    ctx.fillStyle = "#0f172a";
+    ctx.textAlign = "center";
+    for (let r = 0; r < N; r++) {
+      for (let c = 0; c < N; c++) {
+        const x = bracketX + 5 + c * cellWidth + cellWidth / 2;
+        const y = startY + r * rowHeight + 16;
+        ctx.fillText(matrix[r][c].toString(), x, y);
+      }
+    }
+    ctx.textAlign = "left";
+    return rightX + 30;
+  }
+
+  function exportWorksheet() {
+    const cvs = document.createElement('canvas');
+    cvs.width = 800; 
+    
+    const calculatedHeight = 650 + (N * 22 * 3) + 200;
+    cvs.height = Math.max(1000, calculatedHeight);
+    const ctx = cvs.getContext('2d');
+
+    ctx.fillStyle = "#ffffff"; 
+    ctx.fillRect(0, 0, cvs.width, cvs.height);
+
+    ctx.fillStyle = "#1e293b"; 
+    ctx.font = "bold 22px sans-serif";
+    ctx.fillText("인공지능 수학 - RGB 행렬 시각화 탐구 학습지", 40, 45);
+
+    const sInfo = document.getElementById('studentInfo').value || "미입력";
+    ctx.font = "14px sans-serif"; 
+    ctx.fillStyle = "#64748b";
+    ctx.fillText(`학번 / 이름: ${sInfo}`, 40, 72);
+
+    ctx.strokeStyle = "#cbd5e1"; 
+    ctx.lineWidth = 1;
+    ctx.beginPath(); 
+    ctx.moveTo(40, 85); 
+    ctx.lineTo(760, 85); 
+    ctx.stroke();
+
+    let startY = 115;
+    ctx.fillStyle = "#1e40af"; 
+    ctx.font = "bold 15px sans-serif";
+    ctx.fillText("📌 개별 실습 활동", 40, startY);
+    
+    startY += 30;
+    ctx.fillStyle = "#0f172a"; 
+    ctx.font = "bold 14px sans-serif";
+    ctx.fillText("▶ 설정된 RGB 행렬 정보:", 40, startY);
+
+    startY += 15;
+    let currentX = 50;
+
+    if (N <= 5) {
+      currentX = drawMatrixOnCanvas(ctx, "R", matrixR, currentX, startY);
+      currentX = drawMatrixOnCanvas(ctx, "G", matrixG, currentX, startY);
+      drawMatrixOnCanvas(ctx, "B", matrixB, currentX, startY);
+      startY += (N * 22) + 25;
+    } else {
+      drawMatrixOnCanvas(ctx, "R", matrixR, 50, startY);
+      startY += (N * 22) + 12;
+      drawMatrixOnCanvas(ctx, "G", matrixG, 50, startY);
+      startY += (N * 22) + 12;
+      drawMatrixOnCanvas(ctx, "B", matrixB, 50, startY);
+      startY += (N * 22) + 25;
+    }
+
+    ctx.fillStyle = "#0f172a"; 
+    ctx.font = "bold 15px sans-serif";
+    ctx.fillText("🖼️ 이미지 시각화 결과", 40, startY);
+
+    const imgY = startY + 15;
+    ctx.drawImage(document.getElementById('canvasR'), 40, imgY, 110, 110);
+    ctx.drawImage(document.getElementById('canvasG'), 170, imgY, 110, 110);
+    ctx.drawImage(document.getElementById('canvasB'), 300, imgY, 110, 110);
+    ctx.drawImage(document.getElementById('canvasCombined'), 500, imgY, 150, 150);
+
+    ctx.font = "12px sans-serif";
+    ctx.fillStyle = "#ef4444"; ctx.fillText("Red 채널", 70, imgY + 125);
+    ctx.fillStyle = "#16a34a"; ctx.fillText("Green 채널", 195, imgY + 125);
+    ctx.fillStyle = "#2563eb"; ctx.fillText("Blue 채널", 330, imgY + 125);
+    ctx.fillStyle = "#0f172a"; ctx.fillText("최종 RGB 합성", 535, imgY + 165);
+
+    startY = imgY + 185;
+    ctx.strokeStyle = "#cbd5e1"; 
+    ctx.beginPath(); 
+    ctx.moveTo(40, startY); 
+    ctx.lineTo(760, startY); 
+    ctx.stroke();
+
+    startY += 25;
+    ctx.fillStyle = "#0f172a"; 
+    ctx.font = "bold 15px sans-serif";
+    ctx.fillText("📝 교과서 탐구 문제(p89)", 40, startY);
+
+    startY += 25;
+    ctx.font = "bold 13px sans-serif"; 
+    ctx.fillStyle = "#4f46e5";
+    ctx.fillText("단계 1: 네 픽셀 x₁₁, x₁₂, x₂₁, x₂₂의 RGB 색상 정보 (R, G, B)", 40, startY);
+    
+    startY += 20;
+    ctx.font = "13px sans-serif"; 
+    ctx.fillStyle = "#334155";
+    const ans1Text = document.getElementById('ans1').value || "(작성한 답안이 없습니다)";
+    ans1Text.split('\n').forEach(line => { 
+      ctx.fillText(line, 50, startY); 
+      startY += 18; 
+    });
+
+    startY += 10;
+    ctx.font = "bold 13px sans-serif"; 
+    ctx.fillStyle = "#4f46e5";
+    ctx.fillText("단계 2: 네 픽셀 x₁₁, x₁₂, x₂₁, x₂₂가 나타내는 최종 색상", 40, startY);
+    
+    startY += 20;
+    ctx.font = "13px sans-serif"; 
+    ctx.fillStyle = "#334155";
+    const ans2Text = document.getElementById('ans2').value || "(작성한 답안이 없습니다)";
+    ans2Text.split('\n').forEach(line => { 
+      ctx.fillText(line, 50, startY); 
+      startY += 18; 
+    });
+
+    startY += 10;
+    ctx.font = "bold 13px sans-serif"; 
+    ctx.fillStyle = "#059669";
+    ctx.fillText("💡 느낀 점 및 배운 점", 40, startY);
+    
+    startY += 20;
+    ctx.font = "13px sans-serif"; 
+    ctx.fillStyle = "#334155";
+    const refText = document.getElementById('ansReflection').value || "(작성한 느낀 점이 없습니다)";
+    refText.split('\n').forEach(line => { 
+      ctx.fillText(line, 50, startY); 
+      startY += 18; 
+    });
+
+    const link = document.createElement('a');
+    link.download = `RGB_행렬_탐구학습지_${sInfo}.png`;
+    link.href = cvs.toDataURL('image/png');
+    link.click();
+  }
+</script>
+</body>
+</html>
