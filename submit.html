@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>수업 과제 제출함</title>
+  <style>
+    :root {
+      --bg-color: #f8fafc;
+      --card-bg: #ffffff;
+      --primary: #2563eb;
+      --border-color: #e2e8f0;
+      --radius: 12px;
+      --shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-color);
+      padding: 30px 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 28px;
+      width: 100%;
+      max-width: 480px;
+    }
+    h2 { margin-bottom: 20px; color: #1e3a8a; font-size: 1.3rem; }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; font-weight: bold; margin-bottom: 6px; font-size: 0.95rem; }
+    input[type="text"], input[type="file"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 0.95rem;
+    }
+    .btn-submit {
+      width: 100%;
+      padding: 12px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-submit:hover { background: #1d4ed8; }
+    .btn-submit:disabled { background: #94a3b8; cursor: not-allowed; }
+    #status { margin-top: 15px; font-weight: bold; text-align: center; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>📤 수업 과제 제출함</h2>
+  
+  <div class="form-group">
+    <label for="studentInfo">학번 및 이름</label>
+    <input type="text" id="studentInfo" placeholder="예: 20901 김모락">
+  </div>
+
+  <div class="form-group">
+    <label for="taskTitle">활동명 (과제 제목)</label>
+    <input type="text" id="taskTitle" placeholder="예: RGB행렬실습, TFIDF분석">
+  </div>
+
+  <div class="form-group">
+    <label for="fileInput">제출할 파일 선택</label>
+    <input type="file" id="fileInput">
+  </div>
+
+  <button class="btn-submit" id="submitBtn" onclick="uploadFile()">구글 드라이브로 제출하기</button>
+  <div id="status"></div>
+</div>
+
+<script>
+  // 🔴 2단계에서 복사한 Google Apps Script 웹 앱 URL을 여기에 붙여넣으세요.
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyHKCSYVm_sT-ugpOq0_GzbGOuE1Je4HxCDDBprooF09sNkTnqLsciA-JqStwBBfgeG/exec";
+
+  function uploadFile() {
+    const studentInfo = document.getElementById('studentInfo').value.trim();
+    const taskTitle = document.getElementById('taskTitle').value.trim();
+    const fileInput = document.getElementById('fileInput');
+    const statusDiv = document.getElementById('status');
+    const submitBtn = document.getElementById('submitBtn');
+
+    if (!studentInfo) {
+      alert('학번과 이름을 입력해주세요.');
+      return;
+    }
+    if (!taskTitle) {
+      alert('활동명을 입력해주세요.');
+      return;
+    }
+    if (fileInput.files.length === 0) {
+      alert('제출할 파일을 선택해주세요.');
+      return;
+    }
+
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+
+    submitBtn.disabled = true;
+    statusDiv.style.color = "#2563eb";
+    statusDiv.innerText = "⏳ 파일 업로드 중입니다...";
+
+    reader.onload = function(e) {
+      const base64Data = e.target.result.split(',')[1];
+      
+      const payload = {
+        studentInfo: studentInfo,
+        taskTitle: taskTitle,
+        fileName: file.name,
+        fileData: base64Data,
+        mimeType: file.type
+      };
+
+      fetch(GAS_WEB_APP_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.result === 'success') {
+          statusDiv.style.color = "#16a34a";
+          statusDiv.innerText = "✅ 제출이 성공적으로 완료되었습니다!";
+          document.getElementById('fileInput').value = "";
+          document.getElementById('taskTitle').value = "";
+        } else {
+          statusDiv.style.color = "#ef4444";
+          statusDiv.innerText = "❌ 오류 발생: " + data.message;
+        }
+      })
+      .catch(err => {
+        statusDiv.style.color = "#ef4444";
+        statusDiv.innerText = "❌ 업로드 실패. 다시 시도해주세요.";
+        console.error(err);
+      })
+      .finally(() => {
+        submitBtn.disabled = false;
+      });
+    };
+
+    reader.readAsDataURL(file);
+  }
+</script>
+
+</body>
+</html>
