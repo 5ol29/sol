@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HTML 코딩 & 제출 파일 생성기</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .code-textarea {
+            font-family: 'Courier New', Courier, monospace;
+            tab-size: 4;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 h-screen w-screen flex flex-col overflow-hidden">
+
+    <!-- 상단 헤더 -->
+    <header class="bg-slate-800 border-b border-slate-700 px-6 py-3 flex items-center justify-between shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="bg-indigo-600 text-white p-2 rounded-lg font-bold">
+                <i class="fa-solid fa-code"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight">HTML 실시간 에디터</h1>
+                <p class="text-xs text-slate-400">코드를 작성하고 느낀점이 포함된 파일로 저장하세요.</p>
+            </div>
+        </div>
+        
+        <!-- 학번, 이름 입력 & 저장 버튼 -->
+        <div class="flex items-center space-x-3">
+            <input type="text" id="student-id" placeholder="학번 (예: 20901)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 w-32">
+            <input type="text" id="student-name" placeholder="이름 (예: 김모락)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 w-28">
+            <button onclick="downloadCombinedHtml()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-1.5 rounded-lg text-sm transition flex items-center space-x-2 shadow">
+                <i class="fa-solid fa-download"></i>
+                <span>파일 저장하기</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- 메인 콘텐츠 영역 -->
+    <main class="flex-1 overflow-hidden p-4 flex flex-col lg:flex-row gap-4">
+
+        <!-- 좌측: 에디터 및 느낀점 입력 -->
+        <div class="w-full lg:w-1/2 flex flex-col gap-4 h-full">
+            
+            <!-- HTML 코드 에디터 -->
+            <div class="flex-1 bg-slate-800 border border-slate-700 rounded-xl flex flex-col shadow-lg overflow-hidden">
+                <div class="bg-slate-750 px-4 py-2.5 border-b border-slate-700 flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-300 flex items-center space-x-2">
+                        <i class="fa-brands fa-html5 text-orange-400"></i>
+                        <span>HTML 소스 코드</span>
+                    </span>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="loadSampleCode()" class="text-xs text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded transition">예시 코드</button>
+                        <button onclick="clearCode()" class="text-xs text-slate-300 hover:text-red-400 bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded transition">초기화</button>
+                    </div>
+                </div>
+                <textarea id="html-code" oninput="updatePreview()" class="flex-1 bg-slate-900 p-4 text-sm text-emerald-400 code-textarea focus:outline-none resize-none" placeholder="HTML 코드를 입력하세요..."></textarea>
+            </div>
+
+            <!-- 수업 느낀점 입력 영역 -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-lg shrink-0">
+                <label class="block text-xs font-semibold text-slate-300 mb-1 flex items-center space-x-1">
+                    <i class="fa-solid fa-comment-dots text-indigo-400"></i>
+                    <span>이번 시간 느낀 점이나 배운 점, 더 해보고 싶은 것?</span>
+                </label>
+                <textarea id="student-reflection" rows="2" placeholder="오늘 실습을 통해 느낀 점이나 배운 내용을 간단히 적어주세요." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 resize-none"></textarea>
+            </div>
+
+        </div>
+
+        <!-- 우측: 실시간 미리보기 -->
+        <div class="w-full lg:w-1/2 bg-slate-800 border border-slate-700 rounded-xl flex flex-col shadow-lg h-full">
+            <div class="bg-slate-750 px-4 py-2.5 border-b border-slate-700 flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-300 flex items-center space-x-2">
+                    <i class="fa-solid fa-desktop text-indigo-400"></i>
+                    <span>실시간 미리보기</span>
+                </span>
+                <button onclick="openNewWindow()" class="text-xs text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded transition flex items-center space-x-1">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                    <span>새 창에서 보기</span>
+                </button>
+            </div>
+            <div class="flex-1 bg-white relative">
+                <iframe id="preview-frame" class="w-full h-full border-0"></iframe>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- JS 로직 -->
+    <script>
+        const defaultCode = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>나의 첫 웹페이지</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; text-align: center; padding-top: 40px; background-color: #f8fafc; color: #334155; }
+        h1 { color: #2563eb; }
+        p { color: #64748b; }
+    </style>
+</head>
+<body>
+    <h1>안녕하세요! 👋</h1>
+    <p>이곳은 내가 직접 만든 첫 번째 웹페이지입니다.</p>
+</body>
+</html>`;
+
+        window.onload = function() {
+            document.getElementById('html-code').value = defaultCode;
+            updatePreview();
+        };
+
+        // 실시간 미리보기
+        function updatePreview() {
+            const code = document.getElementById('html-code').value;
+            const iframe = document.getElementById('preview-frame');
+            const blob = new Blob([code], { type: 'text/html;charset=utf-8' });
+            iframe.src = URL.createObjectURL(blob);
+        }
+
+        function loadSampleCode() {
+            document.getElementById('html-code').value = defaultCode;
+            updatePreview();
+        }
+
+        function clearCode() {
+            if (confirm('작성 중인 코드를 초기화하시겠습니까?')) {
+                document.getElementById('html-code').value = '';
+                updatePreview();
+            }
+        }
+
+        function openNewWindow() {
+            const code = document.getElementById('html-code').value;
+            const win = window.open();
+            win.document.write(code);
+            win.document.close();
+        }
+
+        // 통합 HTML 파일 생성 및 저장 기능 (느낀점 + 웹페이지 결과물)
+        function downloadCombinedHtml() {
+            const studentId = document.getElementById('student-id').value.trim();
+            const studentName = document.getElementById('student-name').value.trim();
+            const reflection = document.getElementById('student-reflection').value.trim();
+            const userCode = document.getElementById('html-code').value;
+
+            if (!studentId || !studentName) {
+                alert('파일을 저장하려면 학번과 이름을 꼭 입력해 주세요!');
+                document.getElementById('student-id').focus();
+                return;
+            }
+
+            // 느낀점 줄바꿈 처리
+            const formattedReflection = reflection ? reflection.replace(/\n/g, '<br>') : '작성된 느낀점이 없습니다.';
+
+            // 학생 정보/느낀점 + HTML 실행 결과를 포함한 최종 단일 HTML 문서 조합
+            const finalHtmlContent = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${studentId}_${studentName} 학생의 실습 제출물</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 24px; min-height: 100vh; }
+        .container { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+        .header-card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); }
+        .student-info { display: flex; items-center; gap: 12px; margin-bottom: 12px; border-bottom: 1px solid #334155; padding-bottom: 12px; }
+        .badge { background-color: #4f46e5; color: white; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 14px; }
+        .name { font-size: 18px; font-weight: bold; color: #f1f5f9; }
+        .reflection-box { background-color: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 14px; margin-top: 8px; }
+        .reflection-title { font-size: 12px; font-weight: bold; color: #818cf8; margin-bottom: 6px; }
+        .reflection-text { font-size: 14px; color: #e2e8f0; line-height: 1.5; }
+        .preview-card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); }
+        .preview-header { background-color: #334155; padding: 10px 16px; font-size: 13px; font-weight: bold; color: #cbd5e1; }
+        .preview-body { background-color: white; width: 100%; height: 600px; border: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 상단: 학생 정보 및 느낀점 -->
+        <div class="header-card">
+            <div class="student-info">
+                <span class="badge">${studentId}</span>
+                <span class="name">${studentName} 학생의 과제 제출물</span>
+            </div>
+            <div class="reflection-box">
+                <div class="reflection-title">💬 이번 시간 느낀 점이나 배운 점, 더 해보고 싶은 것?</div>
+                <div class="reflection-text">${formattedReflection}</div>
+            </div>
+        </div>
+
+        <!-- 하단: 학생이 제작한 HTML 웹페이지 화면 -->
+        <div class="preview-card">
+            <div class="preview-header">🌐 작성한 HTML 웹페이지 결과물</div>
+            <iframe class="preview-body" srcdoc="${escapeAttribute(userCode)}"></iframe>
+        </div>
+    </div>
+</body>
+</html>`;
+
+            // 파일 다운로드
+            const filename = `${studentId}_${studentName}.html`;
+            const blob = new Blob([finalHtmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // iframe srcdoc 인코딩용 헬퍼 함수
+        function escapeAttribute(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+    </script>
+</body>
+</html>
