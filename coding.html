@@ -17,22 +17,31 @@
 <body class="bg-slate-900 text-slate-100 h-screen w-screen flex flex-col overflow-hidden">
 
     <!-- 상단 헤더 -->
-    <header class="bg-slate-800 border-b border-slate-700 px-6 py-3 flex items-center justify-between shrink-0">
+    <header class="bg-slate-800 border-b border-slate-700 px-6 py-3 flex items-center justify-between shrink-0 flex-wrap gap-2">
         <div class="flex items-center space-x-3">
             <div class="bg-indigo-600 text-white p-2 rounded-lg font-bold">
                 <i class="fa-solid fa-code"></i>
             </div>
             <div>
                 <h1 class="text-lg font-bold tracking-tight">HTML 실시간 에디터</h1>
-                <p class="text-xs text-slate-400">코드를 작성하고 느낀점이 포함된 파일로 저장하세요.</p>
+                <p class="text-xs text-slate-400">코드를 작성하고 느낀점이 포함된 파일로 저장하거나 다시 불러오세요.</p>
             </div>
         </div>
         
-        <!-- 학번, 이름 입력 & 저장 버튼 -->
-        <div class="flex items-center space-x-3">
+        <!-- 학번, 이름 입력, 불러오기 & 저장 버튼 -->
+        <div class="flex items-center space-x-2">
             <input type="text" id="student-id" placeholder="학번 (예: 20901)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 w-32">
             <input type="text" id="student-name" placeholder="이름 (예: 김모락)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 w-28">
-            <button onclick="downloadCombinedHtml()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-1.5 rounded-lg text-sm transition flex items-center space-x-2 shadow">
+            
+            <!-- 파일 불러오기 숨김 input 및 버튼 -->
+            <input type="file" id="upload-file-input" accept=".html" onchange="handleFileUpload(event)" class="hidden">
+            <button onclick="document.getElementById('upload-file-input').click()" class="bg-slate-700 hover:bg-slate-600 text-slate-100 font-semibold px-3 py-1.5 rounded-lg text-sm transition flex items-center space-x-1.5 shadow border border-slate-600">
+                <i class="fa-solid fa-folder-open text-amber-400"></i>
+                <span>불러오기</span>
+            </button>
+
+            <!-- 파일 저장 버튼 -->
+            <button onclick="downloadCombinedHtml()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-1.5 rounded-lg text-sm transition flex items-center space-x-1.5 shadow">
                 <i class="fa-solid fa-download"></i>
                 <span>파일 저장하기</span>
             </button>
@@ -78,7 +87,7 @@
                 </div>
             </div>
 
-            <!-- 수업 느낀점 입력 영역 (태블릿 환경 최적화: 크기 확장 & 조절 가능) -->
+            <!-- 수업 느낀점 입력 영역 -->
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg shrink-0">
                 <label class="block text-sm font-semibold text-slate-200 mb-2 flex items-center space-x-1.5">
                     <i class="fa-solid fa-comment-dots text-indigo-400"></i>
@@ -130,6 +139,7 @@
         function clearCode() {
             if (confirm('작성 중인 코드를 초기화하시겠습니까?')) {
                 document.getElementById('html-code').value = '';
+                document.getElementById('student-reflection').value = '';
                 updatePreview();
             }
         }
@@ -141,7 +151,65 @@
             win.document.close();
         }
 
-        // 통합 HTML 파일 생성 및 저장 기능 (결과물 상단 + 느낀점 하단 배치)
+        // 업로드된 파일 읽기 및 데이터 복원 기능
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(content, 'text/html');
+
+                try {
+                    // 1. 학번 & 이름 추출
+                    const badgeElem = doc.querySelector('.badge');
+                    const nameElem = doc.querySelector('.name');
+                    if (badgeElem) {
+                        document.getElementById('student-id').value = badgeElem.textContent.trim();
+                    }
+                    if (nameElem) {
+                        const rawNameText = nameElem.textContent.trim();
+                        // "김모락 친구의 과제 제출물" 또는 "김모락 학생의 과제 제출물" 형태에서 이름만 추출
+                        const cleanName = rawNameText.replace(/(학생|친구)의 과제 제출물/g, '').trim();
+                        document.getElementById('student-name').value = cleanName;
+                    }
+
+                    // 2. 작성한 HTML 코드 추출 (iframe srcdoc 또는 디코딩)
+                    const iframeElem = doc.querySelector('iframe.preview-body');
+                    if (iframeElem) {
+                        const rawSrcdoc = iframeElem.getAttribute('srcdoc');
+                        if (rawSrcdoc) {
+                            document.getElementById('html-code').value = unescapeAttribute(rawSrcdoc);
+                        }
+                    }
+
+                    // 3. 느낀점 추출
+                    const reflectionElem = doc.querySelector('.reflection-text');
+                    if (reflectionElem) {
+                        // <br> 태그를 다시 줄바꿈 문자(\n)로 복원
+                        let reflectionText = reflectionElem.innerHTML.replace(/<br\s*[\/]?>/gi, "\n").trim();
+                        if (reflectionText === '작성된 느낀점이 없습니다.') {
+                            reflectionText = '';
+                        }
+                        document.getElementById('student-reflection').value = unescapeHTML(reflectionText);
+                    }
+
+                    updatePreview();
+                    alert('이전 저장 파일을 성공적으로 불러왔습니다!');
+                } catch (err) {
+                    alert('파일을 불러오는 도중 오류가 발생했습니다. 올바른 제출 파일인지 확인해 주세요.');
+                    console.error(err);
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+            
+            // 동일 파일 재업로드 동작을 위해 input 초기화
+            event.target.value = '';
+        }
+
+        // 통합 HTML 파일 생성 및 저장 기능
         function downloadCombinedHtml() {
             const studentId = document.getElementById('student-id').value.trim();
             const studentName = document.getElementById('student-name').value.trim();
@@ -157,10 +225,9 @@
             // 느낀점 줄바꿈 처리
             const formattedReflection = reflection ? reflection.replace(/\n/g, '<br>') : '작성된 느낀점이 없습니다.';
 
-            // 다운로드 파일 내부 구조: 결과물이 먼저 나오고, 느낀점이 아래쪽에 배치되도록 수정
+            // 다운로드 파일 구조
             const finalHtmlContent = `<!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${studentId}_${studentName} 학생의 실습 제출물</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1
