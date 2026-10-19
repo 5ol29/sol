@@ -92,4 +92,288 @@
                 
                 <!-- 1번 문항 -->
                 <div>
-                    <label class="block text-sm font-semibold text-indigo-300 mb-1 flex items-center space-x
+                    <label class="block text-sm font-semibold text-indigo-300 mb-1 flex items-center space-x-1.5">
+                        <i class="fa-solid fa-table-cells text-indigo-400"></i>
+                        <span>1. 데이터 구조 설정</span>
+                    </label>
+                    <p class="text-xs text-slate-400 mb-2">
+                        (1) 행(Row)에는 누구/무엇을 넣었나요? 열(Column)에는 어떤 특성(1~5점 수치 등)을 넣었나요?<br>
+                        (2) 어떤 유사도를 이용하여 계산하나요?
+                    </p>
+                    <textarea id="q1-answer" rows="3" placeholder="(1) 행: 학생 5명 / 열: 선호 장르 점수(1~5점)&#10;(2) 코사인 유사도를 이용하여 계산함." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 resize-y min-h-[80px] leading-relaxed"></textarea>
+                </div>
+
+                <!-- 2번 문항 -->
+                <div>
+                    <label class="block text-sm font-semibold text-indigo-300 mb-1 flex items-center space-x-1.5">
+                        <i class="fa-solid fa-chart-line text-indigo-400"></i>
+                        <span>2. 데이터 입력 및 유사도 분석 결과</span>
+                    </label>
+                    <p class="text-xs text-slate-400 mb-2">
+                        직접 만든 데이터를 프로그램에 입력해봅시다.(실습해보기) 이 예측 점수가 데이터 분석에서 어떤 의미가 있나요?
+                    </p>
+                    <textarea id="q2-answer" rows="3" placeholder="나와 A 사용자 모두 SF 장르와 액션 장르에 높은 가중치를 주어 코사인 유사도가 0.98로 가장 크게 나왔다.&#10;사용자 취향 벡터를 활용하여 비슷한 취향의 사용자가 선호하는 영화를 추천할 수 있다." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 resize-y min-h-[80px] leading-relaxed"></textarea>
+                </div>
+
+                <!-- 3번 문항: 느낀점 -->
+                <div>
+                    <label class="block text-sm font-semibold text-indigo-300 mb-1 flex items-center space-x-1.5">
+                        <i class="fa-solid fa-comment-dots text-indigo-400"></i>
+                        <span>3. 수업 느낀 점</span>
+                    </label>
+                    <p class="text-xs text-slate-400 mb-2">이번 시간 느낀 점이나 배운 점, 더 해보고 싶은 것에 대해 적어봅시다.</p>
+                    <textarea id="student-reflection" rows="3" placeholder="오늘 실습을 통해 느낀 점이나 배운 내용을 간단히 작성해 주세요." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 resize-y min-h-[80px] leading-relaxed"></textarea>
+                </div>
+
+            </div>
+        </div>
+
+    </main>
+
+    <!-- JS 로직 -->
+    <script>
+        const defaultCode = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>나의 첫 웹페이지</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; text-align: center; padding-top: 40px; background-color: #f8fafc; color: #334155; }
+        h1 { color: #2563eb; }
+        p { color: #64748b; }
+    </style>
+</head>
+<body>
+    <h1>안녕하세요! 👋</h1>
+    <p>이곳은 내가 직접 만든 첫 번째 웹페이지입니다.</p>
+</body>
+</html>`;
+
+        window.onload = function() {
+            document.getElementById('html-code').value = defaultCode;
+            updatePreview();
+        };
+
+        // 실시간 미리보기
+        function updatePreview() {
+            const code = document.getElementById('html-code').value;
+            const iframe = document.getElementById('preview-frame');
+            const blob = new Blob([code], { type: 'text/html;charset=utf-8' });
+            iframe.src = URL.createObjectURL(blob);
+        }
+
+        function loadSampleCode() {
+            document.getElementById('html-code').value = defaultCode;
+            updatePreview();
+        }
+
+        function clearCode() {
+            if (confirm('작성 중인 코드를 초기화하시겠습니까?')) {
+                document.getElementById('html-code').value = '';
+                document.getElementById('q1-answer').value = '';
+                document.getElementById('q2-answer').value = '';
+                document.getElementById('student-reflection').value = '';
+                updatePreview();
+            }
+        }
+
+        function openNewWindow() {
+            const code = document.getElementById('html-code').value;
+            const win = window.open();
+            win.document.write(code);
+            win.document.close();
+        }
+
+        // 업로드된 파일 읽기 및 데이터 복원 기능
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(content, 'text/html');
+
+                try {
+                    // 1. 학번 & 이름 추출
+                    const badgeElem = doc.querySelector('.badge');
+                    const nameElem = doc.querySelector('.name');
+                    if (badgeElem) {
+                        document.getElementById('student-id').value = badgeElem.textContent.trim();
+                    }
+                    if (nameElem) {
+                        const rawNameText = nameElem.textContent.trim();
+                        const cleanName = rawNameText.replace(/(학생|친구)의 과제 제출물/g, '').trim();
+                        document.getElementById('student-name').value = cleanName;
+                    }
+
+                    // 2. 작성한 HTML 코드 추출
+                    const iframeElem = doc.querySelector('iframe.preview-body');
+                    if (iframeElem) {
+                        const rawSrcdoc = iframeElem.getAttribute('srcdoc');
+                        if (rawSrcdoc) {
+                            document.getElementById('html-code').value = unescapeAttribute(rawSrcdoc);
+                        }
+                    }
+
+                    // 3. 1, 2, 3번 답변 내용 복원
+                    const q1Elem = doc.querySelector('#saved-q1');
+                    if (q1Elem) {
+                        let text = q1Elem.innerHTML.replace(/<br\s*[\/]?>/gi, "\n").trim();
+                        document.getElementById('q1-answer').value = (text === '작성된 내용이 없습니다.') ? '' : unescapeHTML(text);
+                    }
+
+                    const q2Elem = doc.querySelector('#saved-q2');
+                    if (q2Elem) {
+                        let text = q2Elem.innerHTML.replace(/<br\s*[\/]?>/gi, "\n").trim();
+                        document.getElementById('q2-answer').value = (text === '작성된 내용이 없습니다.') ? '' : unescapeHTML(text);
+                    }
+
+                    const reflectionElem = doc.querySelector('#saved-q3');
+                    if (reflectionElem) {
+                        let text = reflectionElem.innerHTML.replace(/<br\s*[\/]?>/gi, "\n").trim();
+                        document.getElementById('student-reflection').value = (text === '작성된 느낀점이 없습니다.') ? '' : unescapeHTML(text);
+                    }
+
+                    updatePreview();
+                    alert('이전 저장 파일을 성공적으로 불러왔습니다!');
+                } catch (err) {
+                    alert('파일을 불러오는 도중 오류가 발생했습니다. 올바른 제출 파일인지 확인해 주세요.');
+                    console.error(err);
+                }
+            };
+            reader.readAsText(file, 'UTF-8');
+            event.target.value = '';
+        }
+
+        // 통합 HTML 파일 생성 및 저장 기능
+        function downloadCombinedHtml() {
+            const studentId = document.getElementById('student-id').value.trim();
+            const studentName = document.getElementById('student-name').value.trim();
+            const q1Val = document.getElementById('q1-answer').value.trim();
+            const q2Val = document.getElementById('q2-answer').value.trim();
+            const reflection = document.getElementById('student-reflection').value.trim();
+            const userCode = document.getElementById('html-code').value;
+
+            if (!studentId || !studentName) {
+                alert('파일을 저장하려면 학번과 이름을 꼭 입력해 주세요!');
+                document.getElementById('student-id').focus();
+                return;
+            }
+
+            // 줄바꿈 처리
+            const formattedQ1 = q1Val ? q1Val.replace(/\n/g, '<br>') : '작성된 내용이 없습니다.';
+            const formattedQ2 = q2Val ? q2Val.replace(/\n/g, '<br>') : '작성된 내용이 없습니다.';
+            const formattedReflection = reflection ? reflection.replace(/\n/g, '<br>') : '작성된 느낀점이 없습니다.';
+
+            // 저장용 단일 HTML 문서 구조
+            const finalHtmlContent = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${studentId}_${studentName} 학생의 실습 제출물</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 24px; min-height: 100vh; }
+        .container { max-width: 1000px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+        .header-card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); }
+        .student-info { display: flex; align-items: center; gap: 12px; }
+        .badge { background-color: #4f46e5; color: white; padding: 4px 10px; border-radius: 6px; font-weight: bold; font-size: 14px; }
+        .name { font-size: 18px; font-weight: bold; color: #f1f5f9; }
+        
+        .section-box { background-color: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+        .section-box:last-child { margin-bottom: 0; }
+        .section-title { font-size: 14px; font-weight: bold; color: #818cf8; margin-bottom: 6px; }
+        .section-sub { font-size: 12px; color: #94a3b8; margin-bottom: 8px; line-height: 1.4; }
+        .section-text { font-size: 14px; color: #e2e8f0; line-height: 1.6; }
+        
+        .preview-card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); }
+        .preview-header { background-color: #334155; padding: 10px 16px; font-size: 13px; font-weight: bold; color: #cbd5e1; }
+        .preview-body { background-color: white; width: 100%; height: 500px; border: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 상단: 학생 정보 -->
+        <div class="header-card">
+            <div class="student-info">
+                <span class="badge">${studentId}</span>
+                <span class="name">${studentName} 친구의 과제 제출물</span>
+            </div>
+        </div>
+
+        <!-- 작성한 HTML 웹페이지 결과물 -->
+        <div class="preview-card">
+            <div class="preview-header">🌐 작성한 HTML 웹페이지 결과물</div>
+            <iframe class="preview-body" srcdoc="${escapeAttribute(userCode)}"></iframe>
+        </div>
+
+        <!-- 하단: 탐구 내용 및 느낀 점 -->
+        <div class="header-card">
+            <!-- 1번 문항 -->
+            <div class="section-box">
+                <div class="section-title">1. 데이터 구조 설정</div>
+                <div class="section-sub">(1) 행(Row): 누구/무엇, 열(Column): 특성(1~5점 수치 등) / (2) 사용한 유사도</div>
+                <div class="section-text" id="saved-q1">${formattedQ1}</div>
+            </div>
+
+            <!-- 2번 문항 -->
+            <div class="section-box">
+                <div class="section-title">2. 데이터 입력 및 유사도 분석 결과</div>
+                <div class="section-sub">비교 데이터의 의미(한 줄 작성)</div>
+                <div class="section-text" id="saved-q2">${formattedQ2}</div>
+            </div>
+
+            <!-- 3번 문항: 느낀점 -->
+            <div class="section-box">
+                <div class="section-title">3. 수업 느낀 점</div>
+                <div class="section-sub">이번 시간 느낀 점이나 배운 점, 더 해보고 싶은 것</div>
+                <div class="section-text" id="saved-q3">${formattedReflection}</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>`;
+
+            // 파일 다운로드
+            const filename = `${studentId}_${studentName}.html`;
+            const blob = new Blob([finalHtmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // 인코딩/디코딩 헬퍼 함수들
+        function escapeAttribute(str) {
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function unescapeAttribute(str) {
+            return str
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'")
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&amp;/g, '&');
+        }
+
+        function unescapeHTML(str) {
+            const txt = document.createElement('textarea');
+            txt.innerHTML = str;
+            return txt.value;
+        }
+    </script>
+</body>
+</html>
