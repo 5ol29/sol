@@ -51,24 +51,7 @@
     <!-- 메인 콘텐츠 영역 -->
     <main class="flex-1 overflow-hidden p-4 flex flex-col lg:flex-row gap-4">
 
-        <!-- 좌측: HTML 코드 에디터 -->
-        <div class="w-full lg:w-1/2 flex flex-col h-full">
-            <div class="flex-1 bg-slate-800 border border-slate-700 rounded-xl flex flex-col shadow-lg overflow-hidden">
-                <div class="bg-slate-750 px-4 py-2.5 border-b border-slate-700 flex items-center justify-between">
-                    <span class="text-xs font-semibold text-slate-300 flex items-center space-x-2">
-                        <i class="fa-brands fa-html5 text-orange-400"></i>
-                        <span>HTML 소스 코드</span>
-                    </span>
-                    <div class="flex items-center space-x-2">
-                        <button onclick="loadSampleCode()" class="text-xs text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded transition">예시 코드</button>
-                        <button onclick="clearCode()" class="text-xs text-slate-300 hover:text-red-400 bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded transition">초기화</button>
-                    </div>
-                </div>
-                <textarea id="html-code" oninput="updatePreview()" class="flex-1 bg-slate-900 p-4 text-sm text-emerald-400 code-textarea focus:outline-none resize-none" placeholder="HTML 코드를 입력하세요..."></textarea>
-            </div>
-        </div>
-
-        <!-- 우측: 실시간 미리보기 및 탐구 양식/느낀점 입력 영역 -->
+        <!-- 좌측: 실시간 미리보기 및 탐구 양식/느낀점 입력 영역 -->
         <div class="w-full lg:w-1/2 flex flex-col gap-4 h-full overflow-y-auto">
             <!-- 실시간 미리보기 -->
             <div class="bg-slate-800 border border-slate-700 rounded-xl flex flex-col shadow-lg overflow-hidden min-h-[250px] shrink-0">
@@ -125,6 +108,23 @@
                     <textarea id="student-reflection" rows="3" placeholder="오늘 실습을 통해 느낀 점이나 배운 내용을 간단히 작성해 주세요." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 resize-y min-h-[80px] leading-relaxed"></textarea>
                 </div>
 
+            </div>
+        </div>
+
+        <!-- 우측: HTML 코드 에디터 -->
+        <div class="w-full lg:w-1/2 flex flex-col h-full">
+            <div class="flex-1 bg-slate-800 border border-slate-700 rounded-xl flex flex-col shadow-lg overflow-hidden">
+                <div class="bg-slate-750 px-4 py-2.5 border-b border-slate-700 flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-300 flex items-center space-x-2">
+                        <i class="fa-brands fa-html5 text-orange-400"></i>
+                        <span>HTML 소스 코드</span>
+                    </span>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="loadSampleCode()" class="text-xs text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded transition">예시 코드</button>
+                        <button onclick="clearCode()" class="text-xs text-slate-300 hover:text-red-400 bg-slate-700 hover:bg-slate-600 px-2.5 py-1 rounded transition">초기화</button>
+                    </div>
+                </div>
+                <textarea id="html-code" oninput="updatePreview()" class="flex-1 bg-slate-900 p-4 text-sm text-emerald-400 code-textarea focus:outline-none resize-none" placeholder="HTML 코드를 입력하세요..."></textarea>
             </div>
         </div>
 
