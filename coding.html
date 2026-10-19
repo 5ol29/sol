@@ -24,7 +24,7 @@
             </div>
             <div>
                 <h1 class="text-lg font-bold tracking-tight">HTML 실시간 에디터</h1>
-                <p class="text-xs text-slate-400">코드를 작성하고 느낀점이 포함된 파일로 저장하거나 다시 불러오세요.</p>
+                <p class="text-xs text-slate-400">코드를 작성하고 탐구 보고서가 포함된 파일로 저장하세요.</p>
             </div>
         </div>
         
@@ -68,10 +68,10 @@
             </div>
         </div>
 
-        <!-- 우측: 실시간 미리보기 및 하단 느낀점 입력 영역 -->
-        <div class="w-full lg:w-1/2 flex flex-col gap-4 h-full overflow-y-auto lg:overflow-visible">
+        <!-- 우측: 실시간 미리보기 및 탐구 양식/느낀점 입력 영역 -->
+        <div class="w-full lg:w-1/2 flex flex-col gap-4 h-full overflow-y-auto">
             <!-- 실시간 미리보기 -->
-            <div class="flex-1 bg-slate-800 border border-slate-700 rounded-xl flex flex-col shadow-lg overflow-hidden min-h-[250px]">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl flex flex-col shadow-lg overflow-hidden min-h-[250px] shrink-0">
                 <div class="bg-slate-750 px-4 py-2.5 border-b border-slate-700 flex items-center justify-between">
                     <span class="text-xs font-semibold text-slate-300 flex items-center space-x-2">
                         <i class="fa-solid fa-desktop text-indigo-400"></i>
@@ -82,152 +82,14 @@
                         <span>새 창에서 보기</span>
                     </button>
                 </div>
-                <div class="flex-1 bg-white relative">
+                <div class="h-[250px] bg-white relative">
                     <iframe id="preview-frame" class="w-full h-full border-0"></iframe>
                 </div>
             </div>
 
-            <!-- 수업 느낀점 입력 영역 -->
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg shrink-0">
-                <label class="block text-sm font-semibold text-slate-200 mb-2 flex items-center space-x-1.5">
-                    <i class="fa-solid fa-comment-dots text-indigo-400"></i>
-                    <span>이번 시간 느낀 점이나 배운 점, 더 해보고 싶은 것?</span>
-                </label>
-                <textarea id="student-reflection" rows="5" placeholder="오늘 실습을 통해 느낀 점이나 배운 내용을 작성해 주세요." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 resize-y min-h-[120px] leading-relaxed"></textarea>
-            </div>
-        </div>
-
-    </main>
-
-    <!-- JS 로직 -->
-    <script>
-        const defaultCode = `<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <title>나의 첫 웹페이지</title>
-    <style>
-        body { font-family: 'Malgun Gothic', sans-serif; text-align: center; padding-top: 40px; background-color: #f8fafc; color: #334155; }
-        h1 { color: #2563eb; }
-        p { color: #64748b; }
-    </style>
-</head>
-<body>
-    <h1>안녕하세요! 👋</h1>
-    <p>이곳은 내가 직접 만든 첫 번째 웹페이지입니다.</p>
-</body>
-</html>`;
-
-        window.onload = function() {
-            document.getElementById('html-code').value = defaultCode;
-            updatePreview();
-        };
-
-        // 실시간 미리보기
-        function updatePreview() {
-            const code = document.getElementById('html-code').value;
-            const iframe = document.getElementById('preview-frame');
-            const blob = new Blob([code], { type: 'text/html;charset=utf-8' });
-            iframe.src = URL.createObjectURL(blob);
-        }
-
-        function loadSampleCode() {
-            document.getElementById('html-code').value = defaultCode;
-            updatePreview();
-        }
-
-        function clearCode() {
-            if (confirm('작성 중인 코드를 초기화하시겠습니까?')) {
-                document.getElementById('html-code').value = '';
-                document.getElementById('student-reflection').value = '';
-                updatePreview();
-            }
-        }
-
-        function openNewWindow() {
-            const code = document.getElementById('html-code').value;
-            const win = window.open();
-            win.document.write(code);
-            win.document.close();
-        }
-
-        // 업로드된 파일 읽기 및 데이터 복원 기능
-        function handleFileUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const content = e.target.result;
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(content, 'text/html');
-
-                try {
-                    // 1. 학번 & 이름 추출
-                    const badgeElem = doc.querySelector('.badge');
-                    const nameElem = doc.querySelector('.name');
-                    if (badgeElem) {
-                        document.getElementById('student-id').value = badgeElem.textContent.trim();
-                    }
-                    if (nameElem) {
-                        const rawNameText = nameElem.textContent.trim();
-                        // "김모락 친구의 과제 제출물" 또는 "김모락 학생의 과제 제출물" 형태에서 이름만 추출
-                        const cleanName = rawNameText.replace(/(학생|친구)의 과제 제출물/g, '').trim();
-                        document.getElementById('student-name').value = cleanName;
-                    }
-
-                    // 2. 작성한 HTML 코드 추출 (iframe srcdoc 또는 디코딩)
-                    const iframeElem = doc.querySelector('iframe.preview-body');
-                    if (iframeElem) {
-                        const rawSrcdoc = iframeElem.getAttribute('srcdoc');
-                        if (rawSrcdoc) {
-                            document.getElementById('html-code').value = unescapeAttribute(rawSrcdoc);
-                        }
-                    }
-
-                    // 3. 느낀점 추출
-                    const reflectionElem = doc.querySelector('.reflection-text');
-                    if (reflectionElem) {
-                        // <br> 태그를 다시 줄바꿈 문자(\n)로 복원
-                        let reflectionText = reflectionElem.innerHTML.replace(/<br\s*[\/]?>/gi, "\n").trim();
-                        if (reflectionText === '작성된 느낀점이 없습니다.') {
-                            reflectionText = '';
-                        }
-                        document.getElementById('student-reflection').value = unescapeHTML(reflectionText);
-                    }
-
-                    updatePreview();
-                    alert('이전 저장 파일을 성공적으로 불러왔습니다!');
-                } catch (err) {
-                    alert('파일을 불러오는 도중 오류가 발생했습니다. 올바른 제출 파일인지 확인해 주세요.');
-                    console.error(err);
-                }
-            };
-            reader.readAsText(file, 'UTF-8');
-            
-            // 동일 파일 재업로드 동작을 위해 input 초기화
-            event.target.value = '';
-        }
-
-        // 통합 HTML 파일 생성 및 저장 기능
-        function downloadCombinedHtml() {
-            const studentId = document.getElementById('student-id').value.trim();
-            const studentName = document.getElementById('student-name').value.trim();
-            const reflection = document.getElementById('student-reflection').value.trim();
-            const userCode = document.getElementById('html-code').value;
-
-            if (!studentId || !studentName) {
-                alert('파일을 저장하려면 학번과 이름을 꼭 입력해 주세요!');
-                document.getElementById('student-id').focus();
-                return;
-            }
-
-            // 느낀점 줄바꿈 처리
-            const formattedReflection = reflection ? reflection.replace(/\n/g, '<br>') : '작성된 느낀점이 없습니다.';
-
-            // 다운로드 파일 구조
-            const finalHtmlContent = `<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1
+            <!-- 실습 분석 및 느낀점 작성 영역 -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-lg shrink-0 flex flex-col gap-4">
+                
+                <!-- 1번 문항 -->
+                <div>
+                    <label class="block text-sm font-semibold text-indigo-300 mb-1 flex items-center space-x
