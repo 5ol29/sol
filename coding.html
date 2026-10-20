@@ -101,19 +101,19 @@
                         (1) 행(또는 열)에 누구/무엇을 넣었나요? 열(또는 행)에는 어떤 특성(1~5점 수치 등)을 넣었나요?<br>(또는 어떤 대상들의 어떤 특성(수치, 값 등)을 계산하여 비교하나요?)<br>
                         (2) 어떤 유사도를 이용하여 계산하나요?
                     </p>
-                    <textarea id="q1-answer" rows="3" placeholder="(1) 행: 학생 5명 / 열: 선호 장르 점수(1~5점)(또는 학생들의 영화 장르별 선호 점수를 계산하여 유사도가 높은 영화를 추천해 ရှင်.)&#10;(2) 코사인 유사도를 이용하여 계산함." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 resize-y min-h-[80px] leading-relaxed"></textarea>
+                    <textarea id="q1-answer" rows="3" placeholder="(1) 행: 학생 5명 / 열: 선호 장르 점수(1~5점)(또는 학생들의 영화 장르별 선호 점수를 계산하여 유사도가 높은 영화를 추천함.)&#10;(2) 코사인 유사도를 이용하여 계산함." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 resize-y min-h-[80px] leading-relaxed"></textarea>
                 </div>
 
                 <!-- 2번 문항 -->
                 <div>
                     <label class="block text-sm font-semibold text-indigo-300 mb-1 flex items-center space-x-1.5">
                         <i class="fa-solid fa-chart-line text-indigo-400"></i>
-                        <span>2. 데이터 입력 및 유사도 분석 결과</span>
+                        <span>2. 나의 프로그램을 한 줄로 설명하기</span>
                     </label>
                     <p class="text-xs text-slate-400 mb-2">
-                        직접 만든 데이터를 프로그램에 입력해봅시다.(실습해보기/실습 데이터는 저장되지 않으므로 참고!)<br> 이 예측 점수가 데이터 분석에서 어떤 의미가 있나요?
+                        직접 만든 데이터를 프로그램에 입력해봅시다.(잘 작동하는지 실습해보기/실습 데이터는 저장되지 않으므로 참고!)<br> 이 프로그램은 데이터 분석에서 어떤 의미가 있나요?
                     </p>
-                    <textarea id="q2-answer" rows="3" placeholder="사용자 취향 벡터를 활용하여 비슷한 취향의 사용자가 선호하는 영화를 추천할 수 있다. 마케팅 분야에서 활용하여 사용자 취향 기반 영화를 추천하는데 활용할 수 있다." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 resize-y min-h-[80px] leading-relaxed"></textarea>
+                    <textarea id="q2-answer" rows="3" placeholder="내가 좋아하는 장르별 점수(액션, 로맨스, 스릴러)를 입력해서, 나와 영화 취향이 가장 비슷한 친구를 찾아내어, 그 친구가 본 신작 영화 평점을 내 예상 점수로 예측하는 프로그램. 마케팅 분야에서 활용하여 사용자 취향 기반 영화를 추천하는데 활용할 수 있다." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 resize-y min-h-[80px] leading-relaxed"></textarea>
                 </div>
 
                 <!-- 3번 문항: 느낀점 -->
@@ -322,8 +322,8 @@
 
             <!-- 2번 문항 -->
             <div class="section-box">
-                <div class="section-title">2. 데이터 입력 및 유사도 분석 결과</div>
-                <div class="section-sub">비교 데이터의 의미(한 줄 작성)</div>
+                <div class="section-title">2. 나의 프로그램 한 줄로 설명하기</div>
+                <div class="section-sub">프로그램의 특성 설명 및 활용 분야 소개</div>
                 <div class="section-text" id="saved-q2">${formattedQ2}</div>
             </div>
 
