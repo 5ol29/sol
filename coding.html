@@ -16,7 +16,7 @@
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col">
 
-    <!-- 상단 헤더 -->
+    <!-- 상단 헤더 (태블릿 반응형 및 스티키 고정) -->
     <header class="bg-slate-800 border-b border-slate-700 px-4 sm:px-6 py-3 flex items-center justify-between shrink-0 flex-wrap gap-3 sticky top-0 z-50 shadow-md">
         <div class="flex items-center space-x-3">
             <div class="bg-indigo-600 text-white p-2 rounded-lg font-bold">
@@ -28,7 +28,7 @@
             </div>
         </div>
         
-        <!-- 학번, 이름 입력, 불러오기 & 저장 버튼 -->
+        <!-- 학번, 이름 입력 (가로 너비 확장), 불러오기 & 저장 버튼 -->
         <div class="flex items-center space-x-2 flex-wrap gap-y-2">
             <input type="text" id="student-id" placeholder="학번 (예: 20901)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 w-36 sm:w-40">
             <input type="text" id="student-name" placeholder="이름 (예: 김모락)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 w-32 sm:w-36">
@@ -48,10 +48,10 @@
         </div>
     </header>
 
-    <!-- 메인 콘텐츠 영역 (반응형 그리드 및 자연스러운 스크롤 지원) -->
+    <!-- 메인 콘텐츠 영역 (태블릿/PC 반응형 Grid 및 스크롤 최적화) -->
     <main class="flex-1 p-4 max-w-[1600px] w-full mx-auto grid grid-cols-1 xl:grid-cols-2 gap-4">
 
-        <!-- 좌측: 실시간 미리보기 (태블릿/모바일에서는 상하 배치 시 위쪽) -->
+        <!-- 좌측: 실시간 미리보기 (PC에서는 고정 Sticky, 태블릿/모바일에서는 상단 배치) -->
         <div class="flex flex-col h-[500px] xl:h-[calc(100vh-100px)] xl:sticky xl:top-[76px]">
             <div class="bg-slate-800 border border-slate-700 rounded-xl flex flex-col shadow-lg overflow-hidden h-full">
                 <div class="bg-slate-750 px-4 py-2.5 border-b border-slate-700 flex items-center justify-between shrink-0">
@@ -98,7 +98,7 @@
                         <span>1. 데이터 구조 설정</span>
                     </label>
                     <p class="text-xs text-slate-400 mb-2">
-                        (1) 행(또는 열)에 누구/무엇을 넣었나요? 열(또는 행)에는 어떤 특성(1~5점 수치 등)을 넣었나요?<br>(또는 어떤 대상들의 어떤 특성(수치, 값 등)을 계산하여 비교하나요?)<br>
+                        (1) 행(또는 열)에 누구/무엇을 넣었나요? 열(또는 행)에는 어떤 특성(1~5점 수치 등)을 넣었나요?(또는 어떤 대상들의 어떤 특성(수치, 값 등)을 계산하여 비교하나요?)<br>
                         (2) 어떤 유사도를 이용하여 계산하나요?
                     </p>
                     <textarea id="q1-answer" rows="3" placeholder="(1) 행: 학생 5명 / 열: 선호 장르 점수(1~5점)(또는 학생들의 영화 장르별 선호 점수를 계산하여 유사도가 높은 영화를 추천함.)&#10;(2) 코사인 유사도를 이용하여 계산함." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 resize-y min-h-[80px] leading-relaxed"></textarea>
@@ -248,7 +248,7 @@
             event.target.value = '';
         }
 
-        // 통합 HTML 파일 생성 및 저장 기능
+        // 통합 HTML 파일 생성 및 저장 기능 (인코딩 안전성 및 미리보기 일치 강화)
         function downloadCombinedHtml() {
             const studentId = document.getElementById('student-id').value.trim();
             const studentName = document.getElementById('student-name').value.trim();
@@ -292,7 +292,7 @@
         
         .preview-card { background-color: #1e293b; border: 1px solid #334155; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3); }
         .preview-header { background-color: #334155; padding: 10px 16px; font-size: 13px; font-weight: bold; color: #cbd5e1; }
-        .preview-body { background-color: white; width: 100%; height: 500px; border: none; }
+        .preview-body { background-color: white; width: 100%; min-height: 550px; border: none; display: block; }
     </style>
 </head>
 <body>
@@ -351,7 +351,7 @@
             URL.revokeObjectURL(url);
         }
 
-        // 인코딩/디코딩 헬퍼 함수들
+        // 인코딩/디코딩 헬퍼 함수들 (HTML 예약어 변환 보완)
         function escapeAttribute(str) {
             return str
                 .replace(/&/g, '&amp;')
