@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="ko" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>산점도 & 추세선 자동 분석 프로그램</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- html2canvas for PDF/PNG Report Generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap');
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.05);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(0,0,0,0.2);
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="h-full bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-200">
+  <div class="min-h-full flex flex-col">
+    <!-- Header -->
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-30 px-4 py-3 sm:px-6 shadow-sm">
+      <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="p-2 bg-brand-500 text-white rounded-xl shadow-md shadow-brand-500/20">
+            <i data-lucide="scatter-chart" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h1 class="font-bold text-lg sm:text-xl leading-tight">엑셀 데이터 산점도 & 추세선 분석기</h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400">붙여넣기만으로 산점도, $R^2$, 회귀방정식을 즉시 확인하세요</p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button id="themeToggleBtn" class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors" title="다크모드 토글">
+            <i data-lucide="moon" class="w-5 h-5 dark:hidden"></i>
+            <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Container (Will be captured for Full Report Download) -->
+    <div id="reportContainer" class="p-4 sm:p-6">
+      <main class="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Student Info Header Card -->
+        <div class="lg:col-span-12 bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-3 w-full sm:w-auto">
+            <div class="p-2.5 bg-brand-50 text-brand-600 dark:bg-slate-700 dark:text-brand-400 rounded-xl">
+              <i data-lucide="user-check" class="w-5 h-5"></i>
+            </div>
+            <div class="grid grid-cols-2 gap-2 w-full sm:w-auto">
+              <input type="text" id="studentIdInput" class="text-xs p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="학번 (예: 20901)">
+              <input type="text" id="studentNameInput" class="text-xs p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="이름 (예: 김모락)">
+            </div>
+          </div>
+          <button id="downloadFullReportBtn" class="w-full sm:w-auto px-4 py-2 text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white rounded-xl shadow-sm transition flex items-center justify-center gap-2">
+            <i data-lucide="file-down" class="w-4 h-4"></i>
+            전체 리포트 저장 (추세선 만들기.png)
+          </button>
+        </div>
+
+        <!-- Left Column: Data Input & Controls -->
+        <section class="lg:col-span-5 flex flex-col gap-5">
+          
+          <!-- Data Input Card -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col gap-3">
+            <div class="flex items-center justify-between">
+              <label for="rawInput" class="font-semibold text-sm flex items-center gap-2">
+                <i data-lucide="clipboard-paste" class="w-4 h-4 text-brand-500"></i>
+                데이터 붙여넣기
+              </label>
+              <div class="flex items-center space-x-2">
+                <button id="sampleDataBtn" class="px-2.5 py-1 text-xs font-medium bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg transition flex items-center gap-1">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i> 예시 데이터
+                </button>
+                <button id="clearDataBtn" class="px-2.5 py-1 text-xs font-medium bg-red-50 dark:bg-red-950/40 hover:bg-red-100 text-red-600 dark:text-red-400 rounded-lg transition flex items-center gap-1">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> 지우기
+                </button>
+              </div>
+            </div>
+
+            <textarea 
+              id="rawInput" 
+              rows="8" 
+              class="w-full text-xs font-mono p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none resize-y transition"
+              placeholder="엑셀 또는 시트에서 데이터를 복사하여 이곳에 붙여넣으세요.&#10;&#10;예시:&#10;공부시간&#t시험점수&#10;1.5&#t52&#10;2.0&#t55&#10;3.0&#t60"
+            ></textarea>
+            
+            <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
+              <i data-lucide="info" class="w-3.5 h-3.5"></i> Tab, Comma(,), Space 등으로 구분된 데이터 자동 인식
+            </p>
+          </div>
+
+        <!-- Column Selection & Config -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+          <h2 class="font-semibold text-sm flex items-center gap-2 border-b border-slate-100 dark:border-slate-700/50 pb-2">
+            <i data-lucide="sliders" class="w-4 h-4 text-brand-500"></i>
+            축 및 추세선 설정
+          </h2>
+
+          <!-- Dropdowns -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">X축 (독립변수)</label>
+              <select id="xAxisSelect" class="w-full text-xs p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                <option value="">데이터 없음</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Y축 (종속변수)</label>
+              <select id="yAxisSelect" class="w-full text-xs p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                <option value="">데이터 없음</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Trendline Controls -->
+          <div class="space-y-3 pt-2">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-medium text-slate-600 dark:text-slate-300">추세선 유형</label>
+              <div class="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-lg">
+                <button id="trendNone" class="trend-type-btn text-xs px-2.5 py-1 rounded-md transition font-medium text-slate-500" data-type="none">없음</button>
+                <button id="trendLinear" class="trend-type-btn text-xs px-2.5 py-1 rounded-md transition font-medium bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm" data-type="linear">선형 (1차)</button>
+                <button id="trendPoly" class="trend-type-btn text-xs px-2.5 py-1 rounded-md transition font-medium text-slate-500" data-type="poly">다항식 (2차)</button>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-1">
+              <label class="text-xs font-medium text-slate-600 dark:text-slate-300">차트에 수식 표시</label>
+              <input type="checkbox" id="showEquationOnChart" class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500" checked>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Right Column: Chart & Statistics -->
+      <section class="lg:col-span-7 flex flex-col gap-5">
+        
+        <!-- Chart Canvas Container -->
+        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col relative min-h-[360px] sm:min-h-[420px]">
+          <div class="flex items-center justify-between mb-4">
+            <h2 id="chartTitle" class="font-bold text-base flex items-center gap-2">
+              <i data-lucide="line-chart" class="w-5 h-5 text-brand-500"></i>
+              산점도 차트
+            </h2>
+            <button id="downloadChartBtn" class="px-3 py-1.5 text-xs bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium rounded-lg transition flex items-center gap-1.5">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i> PNG 저장
+            </button>
+          </div>
+
+          <!-- Chart Area -->
+          <div class="relative flex-1 w-full h-full min-h-[300px]">
+            <canvas id="scatterChart"></canvas>
+            <div id="noDataOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/80 dark:bg-slate-900/80 rounded-xl backdrop-blur-sm z-10">
+              <i data-lucide="file-spread-sheet" class="w-12 h-12 text-slate-300 dark:text-slate-600 mb-2"></i>
+              <p class="text-sm font-medium text-slate-500 dark:text-slate-400">좌측 박스에 데이터를 붙여넣어주세요.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Statistical Summary Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          
+          <!-- Regression Equation & R2 Card -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between">
+            <div>
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">추세선 방정식 & 결정계수</span>
+              <div class="mt-2 space-y-1">
+                <p id="statFormula" class="text-lg font-bold text-brand-600 dark:text-brand-400 font-mono">-</p>
+                <div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-2">
+                  <div>결정계수 ($R^2$): <span id="statR2" class="font-semibold text-slate-800 dark:text-slate-100 font-mono">-</span></div>
+                  <div>상관계수 ($r$): <span id="statR" class="font-semibold text-slate-800 dark:text-slate-100 font-mono">-</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700/50 text-[11px] text-slate-400">
+              $R^2$ 값이 1에 가까울수록 모델의 설명력이 높습니다.
+            </div>
+          </div>
+
+          <!-- Basic Statistics Card -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">요약 통계량</span>
+            <div class="grid grid-cols-2 gap-3 mt-3">
+              <div class="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                <span class="text-[11px] text-slate-400 block">데이터 개수 ($n$)</span>
+                <span id="statN" class="text-sm font-bold font-mono">0</span>
+              </div>
+              <div class="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                <span class="text-[11px] text-slate-400 block">기울기 / 2차 계수</span>
+                <span id="statSlope" class="text-sm font-bold font-mono">-</span>
+              </div>
+              <div class="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                <span class="text-[11px] text-slate-400 block">X 평균 / 표준편차</span>
+                <span id="statXMean" class="text-xs font-bold font-mono block text-slate-700 dark:text-slate-200">-</span>
+              </div>
+              <div class="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                <span class="text-[11px] text-slate-400 block">Y 평균 / 표준편차</span>
+                <span id="statYMean" class="text-xs font-bold font-mono block text-slate-700 dark:text-slate-200">-</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Y Value Prediction Section -->
+        <div class="lg:col-span-12 bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
+          <div class="flex items-center gap-2 border-b border-slate-100 dark:border-slate-700/50 pb-3 mb-4">
+            <div class="p-2 bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400 rounded-xl">
+              <i data-lucide="calculator" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h3 class="font-bold text-sm">Y 값 예측 계산기</h3>
+              <p class="text-xs text-slate-400">현재 계산된 추세선 수식을 이용해 임의의 X값에 대한 Y 예측값을 계산합니다.</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1" id="predictXLabel">X값 입력</label>
+              <input type="number" id="predictXInput" step="any" class="w-full text-sm p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none font-mono" placeholder="예: 4.5">
+            </div>
+
+            <div class="flex items-center justify-center pt-4 md:pt-0">
+              <i data-lucide="arrow-right" class="w-6 h-6 text-slate-300 hidden md:block"></i>
+              <i data-lucide="arrow-down" class="w-6 h-6 text-slate-300 md:hidden"></i>
+            </div>
+
+            <div class="bg-slate-50 dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-center">
+              <span class="text-xs text-slate-400 block mb-1" id="predictYLabel">예측된 Y 값</span>
+              <span id="predictedYResult" class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">-</span>
+              <p id="predictFormulaNote" class="text-[11px] text-slate-400 mt-1 truncate">추세선을 선택해주세요</p>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- JavaScript Application Logic -->
+  <script>
+    // State Management
+    const state = {
+      parsedData: { headers: [], rows: [] },
+      xColIndex: 0,
+      yColIndex: 1,
+      trendType: 'linear', // 'none', 'linear', 'poly'
+      showEquationOnChart: true,
+      chartInstance: null,
+      currentCoeffs: null // Store active regression coefficients
+    };
+
+    // DOM Elements
+    const rawInput = document.getElementById('rawInput');
+    const xAxisSelect = document.getElementById('xAxisSelect');
+    const yAxisSelect = document.getElementById('yAxisSelect');
+    const noDataOverlay = document.getElementById('noDataOverlay');
+    const chartTitle = document.getElementById('chartTitle');
+    const sampleDataBtn = document.getElementById('sampleDataBtn');
+    const clearDataBtn = document.getElementById('clearDataBtn');
+    const downloadChartBtn = document.getElementById('downloadChartBtn');
+    const downloadFullReportBtn = document.getElementById('downloadFullReportBtn');
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const showEquationOnChart = document.getElementById('showEquationOnChart');
+    const trendBtns = document.querySelectorAll('.trend-type-btn');
+
+    // Student Info DOM
+    const studentIdInput = document.getElementById('studentIdInput');
+    const studentNameInput = document.getElementById('studentNameInput');
+
+    // Prediction DOM
+    const predictXInput = document.getElementById('predictXInput');
+    const predictedYResult = document.getElementById('predictedYResult');
+    const predictFormulaNote = document.getElementById('predictFormulaNote');
+    const predictXLabel = document.getElementById('predictXLabel');
+    const predictYLabel = document.getElementById('predictYLabel');
+
+    // Stats DOM
+    const statFormula = document.getElementById('statFormula');
+    const statR2 = document.getElementById('statR2');
+    const statR = document.getElementById('statR');
+    const statN = document.getElementById('statN');
+    const statSlope = document.getElementById('statSlope');
+    const statXMean = document.getElementById('statXMean');
+    const statYMean = document.getElementById('statYMean');
+
+    // Sample Data ( 공부시간 vs 시험점수 )
+    const SAMPLE_DATA = `공부시간(시간)\t시험점수(점)\t출석률(%)
+1.5\t52\t70
+2.0\t55\t75
+2.5\t63\t80
+3.0\t60\t82
+3.5\t72\t85
+4.0\t75\t88
+4.5\t78\t90
+5.0\t85\t92
+5.5\t83\t95
+6.0\t91\t96
+6.5\t89\t98
+7.0\t95\t100
+7.5\t96\t100`;
+
+    // Initialize App
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      initChart();
+      setupEventListeners();
+      
+      // Auto load sample on first visit
+      rawInput.value = SAMPLE_DATA;
+      processPastedData();
+    });
+
+    // Event Listeners
+    function setupEventListeners() {
+      rawInput.addEventListener('input', processPastedData);
+      
+      xAxisSelect.addEventListener('change', (e) => {
+        state.xColIndex = parseInt(e.target.value);
+        updateAnalysis();
+      });
+
+      yAxisSelect.addEventListener('change', (e) => {
+        state.yColIndex = parseInt(e.target.value);
+        updateAnalysis();
+      });
+
+      sampleDataBtn.addEventListener('click', () => {
+        rawInput.value = SAMPLE_DATA;
+        processPastedData();
+      });
+
+      clearDataBtn.addEventListener('click', () => {
+        rawInput.value = '';
+        processPastedData();
+      });
+
+      trendBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          trendBtns.forEach(b => {
+            b.classList.remove('bg-white', 'dark:bg-slate-800', 'text-brand-600', 'dark:text-brand-400', 'shadow-sm');
+            b.classList.add('text-slate-500');
+          });
+          e.currentTarget.classList.add('bg-white', 'dark:bg-slate-800', 'text-brand-600', 'dark:text-brand-400', 'shadow-sm');
+          e.currentTarget.classList.remove('text-slate-500');
+
+          state.trendType = e.currentTarget.dataset.type;
+          updateAnalysis();
+        });
+      });
+
+      showEquationOnChart.addEventListener('change', (e) => {
+        state.showEquationOnChart = e.target.checked;
+        updateAnalysis();
+      });
+
+      downloadChartBtn.addEventListener('click', downloadChart);
+      downloadFullReportBtn.addEventListener('click', downloadFullReport);
+
+      predictXInput.addEventListener('input', calculatePrediction);
+
+      themeToggleBtn.addEventListener('click', () => {
+        document.documentElement.classList.toggle('dark');
+        setTimeout(() => updateAnalysis(), 100);
+      });
+    }
+
+    // Full Page Report Capture Function
+    async function downloadFullReport() {
+      const reportElement = document.getElementById('reportContainer');
+      const studentId = studentIdInput.value.trim();
+      const studentName = studentNameInput.value.trim();
+
+      try {
+        const canvas = await html2canvas(reportElement, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: document.documentElement.classList.contains('dark') ? '#0f172a' : '#f8fafc'
+        });
+
+        const link = document.createElement('a');
+        link.download = '추세선 만들기.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (err) {
+        console.error('Report generation failed:', err);
+      }
+    }
+
+    // Parsing Logic
+    function processPastedData() {
+      const text = rawInput.value.trim();
+      if (!text) {
+        state.parsedData = { headers: [], rows: [] };
+        noDataOverlay.classList.remove('hidden');
+        resetDropdowns();
+        resetStats();
+        if (state.chartInstance) {
+          state.chartInstance.data.datasets = [];
+          state.chartInstance.update();
+        }
+        return;
+      }
+
+      noDataOverlay.classList.add('hidden');
+
+      // Split lines and detect delimiter (\t, ,, or whitespace)
+      const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+      if (lines.length === 0) return;
+
+      // Detect Delimiter from first line
+      const firstLine = lines[0];
+      let delimiter = '\t';
+      if (firstLine.includes('\t')) delimiter = '\t';
+      else if (firstLine.includes(',')) delimiter = ',';
+      else delimiter = /\s+/;
+
+      const rawGrid = lines.map(line => line.trim().split(delimiter));
+
+      // Header detection
+      let headers = [];
+      let startRow = 0;
+
+      // Check if first row contains non-numeric values
+      const firstRowHasNaN = rawGrid[0].some(val => isNaN(parseFloat(val)));
+      if (firstRowHasNaN) {
+        headers = rawGrid[0].map(h => h.trim());
+        startRow = 1;
+      } else {
+        headers = rawGrid[0].map((_, idx) => `열 ${idx + 1}`);
+        startRow = 0;
+      }
+
+      // Parse numerical rows
+      const rows = [];
+      for (let i = startRow; i < rawGrid.length; i++) {
+        const parsedRow = rawGrid[i].map(val => parseFloat(val));
+        rows.push(parsedRow);
+      }
+
+      state.parsedData = { headers, rows };
+
+      updateDropdowns();
+      updateAnalysis();
+    }
+
+    function updateDropdowns() {
+      const { headers } = state.parsedData;
+      xAxisSelect.innerHTML = '';
+      yAxisSelect.innerHTML = '';
+
+      headers.forEach((header, idx) => {
+        const optionX = new Option(header, idx);
+        const optionY = new Option(header, idx);
+        xAxisSelect.add(optionX);
+        yAxisSelect.add(optionY);
+      });
+
+      // Default X = 0, Y = 1 if available
+      state.xColIndex = 0;
+      state.yColIndex = headers.length > 1 ? 1 : 0;
+
+      xAxisSelect.value = state.xColIndex;
+      yAxisSelect.value = state.yColIndex;
+    }
+
+    function resetDropdowns() {
+      xAxisSelect.innerHTML = '<option value="">데이터 없음</option>';
+      yAxisSelect.innerHTML = '<option value="">데이터 없음</option>';
+    }
+
+    // Main Analysis Calculation & Chart Update
+    function updateAnalysis() {
+      const { rows, headers } = state.parsedData;
+      if (!rows || rows.length === 0) return;
+
+      const xIdx = state.xColIndex;
+      const yIdx = state.yColIndex;
+
+      // Extract valid (X, Y) numerical pairs
+      const points = [];
+      rows.forEach(row => {
+        const x = row[xIdx];
+        const y = row[yIdx];
+        if (!isNaN(x) && !isNaN(y) && x !== null && y !== null) {
+          points.push({ x, y });
+        }
+      });
+
+      if (points.length < 2) {
+        resetStats();
+        return;
+      }
+
+      // Sort points by X for proper line rendering
+      points.sort((a, b) => a.x - b.x);
+
+      // Basic Statistics
+      const n = points.length;
+      const xVals = points.map(p => p.x);
+      const yVals = points.map(p => p.y);
+
+      const xMean = mean(xVals);
+      const yMean = mean(yVals);
+      const xStd = stdDev(xVals, xMean);
+      const yStd = stdDev(yVals, yMean);
+      const r = pearsonCorrelation(points, xMean, yMean);
+
+      // Trendline Calculations
+      let trendPoints = [];
+      let formulaText = '-';
+      let r2Val = '-';
+      let slopeText = '-';
+
+      if (state.trendType === 'linear') {
+        const lin = calcLinearRegression(points, xMean, yMean);
+        state.currentCoeffs = { type: 'linear', m: lin.m, b: lin.b };
+        const minX = points[0].x;
+        const maxX = points[points.length - 1].x;
+
+        trendPoints = [
+          { x: minX, y: lin.m * minX + lin.b },
+          { x: maxX, y: lin.m * maxX + lin.b }
+        ];
+
+        const sign = lin.b >= 0 ? '+' : '-';
+        formulaText = `y = ${lin.m.toFixed(4)}x ${sign} ${Math.abs(lin.b).toFixed(4)}`;
+        r2Val = lin.r2.toFixed(4);
+        slopeText = lin.m.toFixed(4);
+
+      } else if (state.trendType === 'poly') {
+        const poly = calcPolyRegression2(points);
+        state.currentCoeffs = { type: 'poly', a: poly.a, b: poly.b, c: poly.c };
+        const minX = points[0].x;
+        const maxX = points[points.length - 1].x;
+        const step = (maxX - minX) / 50 || 1;
+
+        trendPoints = [];
+        for (let x = minX; x <= maxX; x += step) {
+          trendPoints.push({ x, y: poly.a * x * x + poly.b * x + poly.c });
+        }
+        trendPoints.push({ x: maxX, y: poly.a * maxX * maxX + poly.b * maxX + poly.c });
+
+        const bSign = poly.b >= 0 ? '+' : '-';
+        const cSign = poly.c >= 0 ? '+' : '-';
+        formulaText = `y = ${poly.a.toFixed(4)}x² ${bSign} ${Math.abs(poly.b).toFixed(4)}x ${cSign} ${Math.abs(poly.c).toFixed(4)}`;
+        r2Val = poly.r2.toFixed(4);
+        slopeText = `${poly.a.toFixed(4)} (2차)`;
+      } else {
+        state.currentCoeffs = null;
+      }
+
+      // Update Prediction Labels & Re-Calculate Prediction
+      predictXLabel.textContent = `X값 (${headers[xIdx] || 'X'}) 입력`;
+      predictYLabel.textContent = `예측된 Y (${headers[yIdx] || 'Y'}) 값`;
+      calculatePrediction();
+
+      // Update Statistics Cards
+      statFormula.textContent = formulaText;
+      statR2.textContent = r2Val;
+      statR.textContent = isNaN(r) ? '-' : r.toFixed(4);
+      statN.textContent = n;
+      statSlope.textContent = slopeText;
+      statXMean.textContent = `${xMean.toFixed(2)} / ±${xStd.toFixed(2)}`;
+      statYMean.textContent = `${yMean.toFixed(2)} / ±${yStd.toFixed(2)}`;
+
+      // Update Chart Title & Labels
+      const xLabel = headers[xIdx] || 'X';
+      const yLabel = headers[yIdx] || 'Y';
+      chartTitle.innerHTML = `<i data-lucide="line-chart" class="w-5 h-5 text-brand-500"></i> ${xLabel} vs ${yLabel}`;
+      lucide.createIcons();
+
+      // Render Chart
+      renderChart(points, trendPoints, xLabel, yLabel, formulaText);
+    }
+
+    // Prediction Calculator
+    function calculatePrediction() {
+      const val = parseFloat(predictXInput.value);
+      if (isNaN(val) || !state.currentCoeffs) {
+        predictedYResult.textContent = '-';
+        predictFormulaNote.textContent = state.trendType === 'none' ? '추세선 유형을 선형 또는 다항식으로 설정하세요.' : 'X값을 입력해 주세요.';
+        return;
+      }
+
+      let yPred = 0;
+      if (state.currentCoeffs.type === 'linear') {
+        const { m, b } = state.currentCoeffs;
+        yPred = m * val + b;
+        predictFormulaNote.textContent = `y = ${m.toFixed(4)} × (${val}) + ${b.toFixed(4)}`;
+      } else if (state.currentCoeffs.type === 'poly') {
+        const { a, b, c } = state.currentCoeffs;
+        yPred = a * val * val + b * val + c;
+        predictFormulaNote.textContent = `y = ${a.toFixed(4)}×(${val})² + ${b.toFixed(4)}×(${val}) + ${c.toFixed(4)}`;
+      }
+
+      predictedYResult.textContent = yPred.toFixed(4);
+    }
+
+    function resetStats() {
+      statFormula.textContent = '-';
+      statR2.textContent = '-';
+      statR.textContent = '-';
+      statN.textContent = '0';
+      statSlope.textContent = '-';
+      statXMean.textContent = '-';
+      statYMean.textContent = '-';
+    }
+
+    // Chart.js Rendering
+    function initChart() {
+      const ctx = document.getElementById('scatterChart').getContext('2d');
+      state.chartInstance = new Chart(ctx, {
+        type: 'scatter',
+        data: { datasets: [] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top',
+              labels: {
+                font: { family: 'Pretendard', size: 12 },
+                usePointStyle: true
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `(${ctx.raw.x.toFixed(2)}, ${ctx.raw.y.toFixed(2)})`
+              }
+            }
+          },
+          scales: {
+            x: {
+              type: 'linear',
+              position: 'bottom',
+              grid: { color: 'rgba(150, 150, 150, 0.1)' },
+              title: { display: true, font: { family: 'Pretendard', weight: '600' } }
+            },
+            y: {
+              grid: { color: 'rgba(150, 150, 150, 0.1)' },
+              title: { display: true, font: { family: 'Pretendard', weight: '600' } }
+            }
+          }
+        }
+      });
+    }
+
+    function renderChart(scatterPoints, trendPoints, xLabel, yLabel, formulaText) {
+      const isDark = document.documentElement.classList.contains('dark');
+      const textColor = isDark ? '#cbd5e1' : '#475569';
+
+      const datasets = [{
+        label: '데이터 포인트',
+        data: scatterPoints,
+        backgroundColor: '#3b82f6',
+        borderColor: '#2563eb',
+        borderWidth: 1,
+        pointRadius: 6,
+        pointHoverRadius: 8
+      }];
+
+      if (state.trendType !== 'none' && trendPoints.length > 0) {
+        datasets.push({
+          type: 'line',
+          label: state.showEquationOnChart ? `추세선 (${formulaText})` : '추세선',
+          data: trendPoints,
+          borderColor: '#ef4444',
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: false,
+          tension: 0.2
+        });
+      }
+
+      state.chartInstance.data.datasets = datasets;
+      state.chartInstance.options.scales.x.title.text = xLabel;
+      state.chartInstance.options.scales.x.title.color = textColor;
+      state.chartInstance.options.scales.x.ticks.color = textColor;
+
+      state.chartInstance.options.scales.y.title.text = yLabel;
+      state.chartInstance.options.scales.y.title.color = textColor;
+      state.chartInstance.options.scales.y.ticks.color = textColor;
+
+      state.chartInstance.options.plugins.legend.labels.color = textColor;
+
+      state.chartInstance.update();
+    }
+
+    // Mathematical Helpers
+    function mean(arr) {
+      return arr.reduce((sum, val) => sum + val, 0) / arr.length;
+    }
+
+    function stdDev(arr, meanVal) {
+      const m = meanVal !== undefined ? meanVal : mean(arr);
+      const variance = arr.reduce((sum, val) => sum + Math.pow(val - m, 2), 0) / arr.length;
+      return Math.sqrt(variance);
+    }
+
+    function pearsonCorrelation(points, xMean, yMean) {
+      let num = 0;
+      let denX = 0;
+      let denY = 0;
+      points.forEach(p => {
+        const xDiff = p.x - xMean;
+        const yDiff = p.y - yMean;
+        num += xDiff * yDiff;
+        denX += xDiff * xDiff;
+        denY += yDiff * yDiff;
+      });
+      if (denX === 0 || denY === 0) return 0;
+      return num / (Math.sqrt(denX) * Math.sqrt(denY));
+    }
+
+    // Linear Regression y = mx + b
+    function calcLinearRegression(points, xMean, yMean) {
+      let num = 0;
+      let den = 0;
+      points.forEach(p => {
+        num += (p.x - xMean) * (p.y - yMean);
+        den += Math.pow(p.x - xMean, 2);
+      });
+
+      const m = den !== 0 ? num / den : 0;
+      const b = yMean - m * xMean;
+
+      // Calc R-squared
+      const ssTot = points.reduce((sum, p) => sum + Math.pow(p.y - yMean, 2), 0);
+      const ssRes = points.reduce((sum, p) => sum + Math.pow(p.y - (m * p.x + b), 2), 0);
+      const r2 = ssTot !== 0 ? 1 - (ssRes / ssTot) : 0;
+
+      return { m, b, r2 };
+    }
+
+    // Quadratic Polynomial Regression y = ax^2 + bx + c (Least Squares System)
+    function calcPolyRegression2(points) {
+      const n = points.length;
+      let sumX = 0, sumX2 = 0, sumX3 = 0, sumX4 = 0;
+      let sumY = 0, sumXY = 0, sumX2Y = 0;
+
+      points.forEach(p => {
+        const x = p.x;
+        const y = p.y;
+        const x2 = x * x;
+        sumX += x;
+        sumX2 += x2;
+        sumX3 += x2 * x;
+        sumX4 += x2 * x2;
+        sumY += y;
+        sumXY += x * y;
+        sumX2Y += x2 * y;
+      });
+
+      // Matrix System A * [a, b, c] = B
+      // [ sumX4  sumX3  sumX2 ] [ a ]   [ sumX2Y ]
+      // [ sumX3  sumX2  sumX  ] [ b ] = [ sumXY  ]
+      // [ sumX2  sumX   n     ] [ c ]   [ sumY   ]
+
+      const A = [
+        [sumX4, sumX3, sumX2],
+        [sumX3, sumX2, sumX],
+        [sumX2, sumX, n]
+      ];
+      const B = [sumX2Y, sumXY, sumY];
+
+      const coeff = solve3x3(A, B);
+      const a = coeff[0];
+      const b = coeff[1];
+      const c = coeff[2];
+
+      const yMean = sumY / n;
+      const ssTot = points.reduce((sum, p) => sum + Math.pow(p.y - yMean, 2), 0);
+      const ssRes = points.reduce((sum, p) => sum + Math.pow(p.y - (a * p.x * p.x + b * p.x + c), 2), 0);
+      const r2 = ssTot !== 0 ? 1 - (ssRes / ssTot) : 0;
+
+      return { a, b, c, r2 };
+    }
+
+    // Solve 3x3 Linear System using Cramer's Rule
+    function solve3x3(A, B) {
+      const detA = det3x3(A);
+      if (Math.abs(detA) < 1e-12) return [0, 0, 0];
+
+      const A0 = [B, A[0].slice(1), A[1].slice(1), A[2].slice(1)]; // replace col 0
+      const A1 = [A[0].slice(), A[1].slice(), A[2].slice()];
+      const A2 = [A[0].slice(), A[1].slice(), A[2].slice()];
+
+      for (let i = 0; i < 3; i++) {
+        A1[i][1] = B[i];
+        A2[i][2] = B[i];
+      }
+
+      // Re-construct correct matrix swaps for A0
+      const M0 = [
+        [B[0], A[0][1], A[0][2]],
+        [B[1], A[1][1], A[1][2]],
+        [B[2], A[2][1], A[2][2]]
+      ];
+
+      return [det3x3(M0) / detA, det3x3(A1) / detA, det3x3(A2) / detA];
+    }
+
+    function det3x3(m) {
+      return m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) -
+             m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) +
+             m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
+    }
+
+    // Export Chart as Image
+    function downloadChart() {
+      if (!state.chartInstance) return;
+      const link = document.createElement('a');
+      link.download = 'scatterplot_trendline.png';
+      link.href = state.chartInstance.toBase64Image();
+      link.click();
+    }
+  </script>
+</body>
+</html>
