@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>산점도 & 추세선 자동 분석기</title>
+  <title>산점도 & 추세선 분석기</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js CDN -->
@@ -34,6 +34,8 @@
     @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap');
     body {
       font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
     /* Custom scrollbar */
     ::-webkit-scrollbar {
@@ -59,7 +61,7 @@
             <i data-lucide="scatter-chart" class="w-6 h-6"></i>
           </div>
           <div>
-            <h1 class="font-bold text-lg sm:text-xl leading-tight">산점도 & 추세선 자동 분석기</h1>
+            <h1 class="font-bold text-lg sm:text-xl leading-tight">산점도 & 추세선 분석기</h1>
             <p class="text-xs text-slate-500 dark:text-slate-400">데이터를 산점도로 나타내고 추세선을 구해봅시다.</p>
           </div>
         </div>
@@ -83,13 +85,13 @@
               <i data-lucide="user-check" class="w-5 h-5"></i>
             </div>
             <div class="grid grid-cols-2 gap-2 w-full sm:w-auto">
-              <input type="text" id="studentIdInput" class="text-xs p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="학번 (예: 20900)">
-              <input type="text" id="studentNameInput" class="text-xs p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="이름 (예: 김모락)">
+              <input type="text" id="studentIdInput" class="text-xs p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="학번 (예: 20240123)">
+              <input type="text" id="studentNameInput" class="text-xs p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="이름 (예: 홍길동)">
             </div>
           </div>
           <button id="downloadFullReportBtn" class="w-full sm:w-auto px-4 py-2 text-xs font-semibold bg-brand-600 hover:bg-brand-700 text-white rounded-xl shadow-sm transition flex items-center justify-center gap-2">
             <i data-lucide="file-down" class="w-4 h-4"></i>
-            전체 리포트 저장 (추세선 만들기.png)
+            전체 리포트 이미지로 저장하기
           </button>
         </div>
 
@@ -421,7 +423,7 @@
       });
     }
 
-    // Full Page Report Capture Function
+    // Full Page Report Capture Function (High DPI Optimized)
     async function downloadFullReport() {
       const reportElement = document.getElementById('reportContainer');
       const studentId = studentIdInput.value.trim();
@@ -429,8 +431,10 @@
 
       try {
         const canvas = await html2canvas(reportElement, {
-          scale: 2,
+          scale: Math.max(window.devicePixelRatio || 1, 3), // 고해상도 3배율 적용으로 폰트 깨짐 방지
           useCORS: true,
+          allowTaint: true,
+          letterRendering: 1, // 글자 렌더링 정확도 향상
           backgroundColor: document.documentElement.classList.contains('dark') ? '#0f172a' : '#f8fafc'
         });
 
