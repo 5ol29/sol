@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>산점도 & 추세선 자동 분석 프로그램</title>
+  <title>산점도 & 추세선 자동 분석기</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Chart.js CDN -->
@@ -59,8 +59,8 @@
             <i data-lucide="scatter-chart" class="w-6 h-6"></i>
           </div>
           <div>
-            <h1 class="font-bold text-lg sm:text-xl leading-tight">산점도 & 추세선 자동 분석 프로그램</h1>
-            <p class="text-xs text-slate-500 dark:text-slate-400">데이터를 입력하여 산점도, 추세선을 간편하고 정확하게 나타내어보세요.</p>
+            <h1 class="font-bold text-lg sm:text-xl leading-tight">산점도 & 추세선 자동 분석기</h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400">데이터를 산점도로 나타내고 추세선을 구해봅시다.</p>
           </div>
         </div>
         <div class="flex items-center space-x-2">
@@ -83,7 +83,7 @@
               <i data-lucide="user-check" class="w-5 h-5"></i>
             </div>
             <div class="grid grid-cols-2 gap-2 w-full sm:w-auto">
-              <input type="text" id="studentIdInput" class="text-xs p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="학번 (예: 20901)">
+              <input type="text" id="studentIdInput" class="text-xs p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="학번 (예: 20900)">
               <input type="text" id="studentNameInput" class="text-xs p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="이름 (예: 김모락)">
             </div>
           </div>
@@ -150,11 +150,18 @@
 
           <!-- Trendline Controls -->
           <div class="space-y-3 pt-2">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700/50">
+              <label for="enableTrendline" class="text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 cursor-pointer">
+                <i data-lucide="trending-up" class="w-4 h-4 text-red-500"></i>
+                추세선 표시
+              </label>
+              <input type="checkbox" id="enableTrendline" class="w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500 cursor-pointer">
+            </div>
+
+            <div id="trendTypeContainer" class="flex items-center justify-between opacity-50 pointer-events-none transition-opacity">
               <label class="text-xs font-medium text-slate-600 dark:text-slate-300">추세선 유형</label>
               <div class="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-lg">
-                <button id="trendNone" class="trend-type-btn text-xs px-2.5 py-1 rounded-md transition font-medium text-slate-500" data-type="none">없음</button>
-                <button id="trendLinear" class="trend-type-btn text-xs px-2.5 py-1 rounded-md transition font-medium bg-white dark:bg-slate-800 text-brand-600 dark:text-brand-400 shadow-sm" data-type="linear">선형 (1차)</button>
+                <button id="trendLinear" class="trend-type-btn text-xs px-2.5 py-1 rounded-md transition font-medium bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 shadow-sm" data-type="linear">선형 (1차)</button>
                 <button id="trendPoly" class="trend-type-btn text-xs px-2.5 py-1 rounded-md transition font-medium text-slate-500" data-type="poly">다항식 (2차)</button>
               </div>
             </div>
@@ -280,7 +287,8 @@
       parsedData: { headers: [], rows: [] },
       xColIndex: 0,
       yColIndex: 1,
-      trendType: 'linear', // 'none', 'linear', 'poly'
+      enableTrendline: false, // Default: Trendline disabled
+      trendType: 'linear', // 'linear', 'poly'
       showEquationOnChart: true,
       chartInstance: null,
       currentCoeffs: null // Store active regression coefficients
@@ -297,6 +305,8 @@
     const downloadChartBtn = document.getElementById('downloadChartBtn');
     const downloadFullReportBtn = document.getElementById('downloadFullReportBtn');
     const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const enableTrendline = document.getElementById('enableTrendline');
+    const trendTypeContainer = document.getElementById('trendTypeContainer');
     const showEquationOnChart = document.getElementById('showEquationOnChart');
     const trendBtns = document.querySelectorAll('.trend-type-btn');
 
@@ -371,13 +381,23 @@
         processPastedData();
       });
 
+      enableTrendline.addEventListener('change', (e) => {
+        state.enableTrendline = e.target.checked;
+        if (state.enableTrendline) {
+          trendTypeContainer.classList.remove('opacity-50', 'pointer-events-none');
+        } else {
+          trendTypeContainer.classList.add('opacity-50', 'pointer-events-none');
+        }
+        updateAnalysis();
+      });
+
       trendBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
           trendBtns.forEach(b => {
-            b.classList.remove('bg-white', 'dark:bg-slate-800', 'text-brand-600', 'dark:text-brand-400', 'shadow-sm');
+            b.classList.remove('bg-white', 'dark:bg-slate-800', 'text-red-600', 'dark:text-red-400', 'shadow-sm');
             b.classList.add('text-slate-500');
           });
-          e.currentTarget.classList.add('bg-white', 'dark:bg-slate-800', 'text-brand-600', 'dark:text-brand-400', 'shadow-sm');
+          e.currentTarget.classList.add('bg-white', 'dark:bg-slate-800', 'text-red-600', 'dark:text-red-400', 'shadow-sm');
           e.currentTarget.classList.remove('text-slate-500');
 
           state.trendType = e.currentTarget.dataset.type;
@@ -548,40 +568,42 @@
       let r2Val = '-';
       let slopeText = '-';
 
-      if (state.trendType === 'linear') {
-        const lin = calcLinearRegression(points, xMean, yMean);
-        state.currentCoeffs = { type: 'linear', m: lin.m, b: lin.b };
-        const minX = points[0].x;
-        const maxX = points[points.length - 1].x;
+      if (state.enableTrendline) {
+        if (state.trendType === 'linear') {
+          const lin = calcLinearRegression(points, xMean, yMean);
+          state.currentCoeffs = { type: 'linear', m: lin.m, b: lin.b };
+          const minX = points[0].x;
+          const maxX = points[points.length - 1].x;
 
-        trendPoints = [
-          { x: minX, y: lin.m * minX + lin.b },
-          { x: maxX, y: lin.m * maxX + lin.b }
-        ];
+          trendPoints = [
+            { x: minX, y: lin.m * minX + lin.b },
+            { x: maxX, y: lin.m * maxX + lin.b }
+          ];
 
-        const sign = lin.b >= 0 ? '+' : '-';
-        formulaText = `y = ${lin.m.toFixed(4)}x ${sign} ${Math.abs(lin.b).toFixed(4)}`;
-        r2Val = lin.r2.toFixed(4);
-        slopeText = lin.m.toFixed(4);
+          const sign = lin.b >= 0 ? '+' : '-';
+          formulaText = `y = ${lin.m.toFixed(4)}x ${sign} ${Math.abs(lin.b).toFixed(4)}`;
+          r2Val = lin.r2.toFixed(4);
+          slopeText = lin.m.toFixed(4);
 
-      } else if (state.trendType === 'poly') {
-        const poly = calcPolyRegression2(points);
-        state.currentCoeffs = { type: 'poly', a: poly.a, b: poly.b, c: poly.c };
-        const minX = points[0].x;
-        const maxX = points[points.length - 1].x;
-        const step = (maxX - minX) / 50 || 1;
+        } else if (state.trendType === 'poly') {
+          const poly = calcPolyRegression2(points);
+          state.currentCoeffs = { type: 'poly', a: poly.a, b: poly.b, c: poly.c };
+          const minX = points[0].x;
+          const maxX = points[points.length - 1].x;
+          const step = (maxX - minX) / 50 || 1;
 
-        trendPoints = [];
-        for (let x = minX; x <= maxX; x += step) {
-          trendPoints.push({ x, y: poly.a * x * x + poly.b * x + poly.c });
+          trendPoints = [];
+          for (let x = minX; x <= maxX; x += step) {
+            trendPoints.push({ x, y: poly.a * x * x + poly.b * x + poly.c });
+          }
+          trendPoints.push({ x: maxX, y: poly.a * maxX * maxX + poly.b * maxX + poly.c });
+
+          const bSign = poly.b >= 0 ? '+' : '-';
+          const cSign = poly.c >= 0 ? '+' : '-';
+          formulaText = `y = ${poly.a.toFixed(4)}x² ${bSign} ${Math.abs(poly.b).toFixed(4)}x ${cSign} ${Math.abs(poly.c).toFixed(4)}`;
+          r2Val = poly.r2.toFixed(4);
+          slopeText = `${poly.a.toFixed(4)} (2차)`;
         }
-        trendPoints.push({ x: maxX, y: poly.a * maxX * maxX + poly.b * maxX + poly.c });
-
-        const bSign = poly.b >= 0 ? '+' : '-';
-        const cSign = poly.c >= 0 ? '+' : '-';
-        formulaText = `y = ${poly.a.toFixed(4)}x² ${bSign} ${Math.abs(poly.b).toFixed(4)}x ${cSign} ${Math.abs(poly.c).toFixed(4)}`;
-        r2Val = poly.r2.toFixed(4);
-        slopeText = `${poly.a.toFixed(4)} (2차)`;
       } else {
         state.currentCoeffs = null;
       }
@@ -697,13 +719,14 @@
         pointHoverRadius: 8
       }];
 
-      if (state.trendType !== 'none' && trendPoints.length > 0) {
+      if (state.enableTrendline && trendPoints.length > 0) {
         datasets.push({
           type: 'line',
           label: state.showEquationOnChart ? `추세선 (${formulaText})` : '추세선',
           data: trendPoints,
-          borderColor: '#ef4444',
-          borderWidth: 2,
+          borderColor: '#dc2626', // Vibrant Red (Tailwind red-600)
+          backgroundColor: '#dc2626',
+          borderWidth: 2.5,
           pointRadius: 0,
           fill: false,
           tension: 0.2
