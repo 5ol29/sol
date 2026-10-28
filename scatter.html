@@ -1,3 +1,4 @@
+<script class="web_code_canvas" type="canvas/html" title="산점도 & 추세선 분석기" id="scatter_plot_app">
 <!DOCTYPE html>
 <html lang="ko" class="h-full">
 <head>
@@ -37,7 +38,6 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
-    /* Custom scrollbar */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -74,7 +74,7 @@
       </div>
     </header>
 
-    <!-- Main Content Container (Will be captured for Full Report Download) -->
+    <!-- Main Content Container (Captured for Full Report Download) -->
     <div id="reportContainer" class="p-4 sm:p-6">
       <main class="max-w-7xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6">
         
@@ -123,158 +123,159 @@
             ></textarea>
             
             <p class="text-xs text-slate-400 mt-2 flex items-center gap-1">
-              <i data-lucide="info" class="w-3.5 h-3.5"></i> Tab, Comma(,), Space 등으로 구분된 데이터 자동 인식
+              <i data-lucide="info" class="w-3.5 h-3.5"></i> Tab 또는 Comma(,) 구분 데이터 자동 지원
             </p>
           </div>
 
-        <!-- Column Selection & Config -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
-          <h2 class="font-semibold text-sm flex items-center gap-2 border-b border-slate-100 dark:border-slate-700/50 pb-2">
-            <i data-lucide="sliders" class="w-4 h-4 text-brand-500"></i>
-            축 및 추세선 설정
-          </h2>
+          <!-- Column Selection & Config -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+            <h2 class="font-semibold text-sm flex items-center gap-2 border-b border-slate-100 dark:border-slate-700/50 pb-2">
+              <i data-lucide="sliders" class="w-4 h-4 text-brand-500"></i>
+              축 및 추세선 설정
+            </h2>
 
-          <!-- Dropdowns -->
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">X축 (독립변수)</label>
-              <select id="xAxisSelect" class="w-full text-xs p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
-                <option value="">데이터 없음</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Y축 (종속변수)</label>
-              <select id="yAxisSelect" class="w-full text-xs p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
-                <option value="">데이터 없음</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Trendline Controls -->
-          <div class="space-y-3 pt-2">
-            <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700/50">
-              <label for="enableTrendline" class="text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 cursor-pointer">
-                <i data-lucide="trending-up" class="w-4 h-4 text-red-500"></i>
-                추세선 표시
-              </label>
-              <input type="checkbox" id="enableTrendline" class="w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500 cursor-pointer">
-            </div>
-
-            <div id="trendTypeContainer" class="flex items-center justify-between opacity-50 pointer-events-none transition-opacity">
-              <label class="text-xs font-medium text-slate-600 dark:text-slate-300">추세선 유형</label>
-              <div class="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-lg">
-                <button id="trendLinear" class="trend-type-btn text-xs px-2.5 py-1 rounded-md transition font-medium bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 shadow-sm" data-type="linear">선형 (1차)</button>
-                <button id="trendPoly" class="trend-type-btn text-xs px-2.5 py-1 rounded-md transition font-medium text-slate-500" data-type="poly">다항식 (2차)</button>
+            <!-- Dropdowns -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">X축 (독립변수)</label>
+                <select id="xAxisSelect" class="w-full text-xs p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                  <option value="">데이터 없음</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Y축 (종속변수)</label>
+                <select id="yAxisSelect" class="w-full text-xs p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-brand-500 focus:outline-none">
+                  <option value="">데이터 없음</option>
+                </select>
               </div>
             </div>
 
-            <div class="flex items-center justify-between pt-1">
-              <label class="text-xs font-medium text-slate-600 dark:text-slate-300">차트에 수식 표시</label>
-              <input type="checkbox" id="showEquationOnChart" class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500" checked>
+            <!-- Trendline Controls -->
+            <div class="space-y-3 pt-2">
+              <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700/50">
+                <label for="enableTrendline" class="text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 cursor-pointer">
+                  <i data-lucide="trending-up" class="w-4 h-4 text-red-500"></i>
+                  추세선 표시
+                </label>
+                <input type="checkbox" id="enableTrendline" class="w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500 cursor-pointer">
+              </div>
+
+              <div id="trendTypeContainer" class="flex items-center justify-between opacity-50 pointer-events-none transition-opacity">
+                <label class="text-xs font-medium text-slate-600 dark:text-slate-300">추세선 유형</label>
+                <div class="flex bg-slate-100 dark:bg-slate-900 p-1 rounded-lg">
+                  <button id="trendLinear" class="trend-type-btn text-xs px-2.5 py-1 rounded-md transition font-medium bg-white dark:bg-slate-800 text-red-600 dark:text-red-400 shadow-sm" data-type="linear">선형 (1차)</button>
+                  <button id="trendPoly" class="trend-type-btn text-xs px-2.5 py-1 rounded-md transition font-medium text-slate-500" data-type="poly">다항식 (2차)</button>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between pt-1">
+                <label class="text-xs font-medium text-slate-600 dark:text-slate-300">차트에 수식 표시</label>
+                <input type="checkbox" id="showEquationOnChart" class="w-4 h-4 text-brand-600 rounded border-slate-300 focus:ring-brand-500" checked>
+              </div>
             </div>
           </div>
-        </div>
 
-      </section>
+        </section>
 
-      <!-- Right Column: Chart & Statistics -->
-      <section class="lg:col-span-7 flex flex-col gap-5">
-        
-        <!-- Chart Canvas Container -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col relative min-h-[360px] sm:min-h-[420px]">
-          <div class="flex items-center justify-between mb-4">
-            <h2 id="chartTitle" class="font-bold text-base flex items-center gap-2">
-              <i data-lucide="line-chart" class="w-5 h-5 text-brand-500"></i>
-              산점도 차트
-            </h2>
-          </div>
-
-          <!-- Chart Area -->
-          <div class="relative flex-1 w-full h-full min-h-[300px]">
-            <canvas id="scatterChart"></canvas>
-            <div id="noDataOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/80 dark:bg-slate-900/80 rounded-xl backdrop-blur-sm z-10">
-              <i data-lucide="file-spread-sheet" class="w-12 h-12 text-slate-300 dark:text-slate-600 mb-2"></i>
-              <p class="text-sm font-medium text-slate-500 dark:text-slate-400">좌측 박스에 데이터를 붙여넣어주세요.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Statistical Summary Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <!-- Right Column: Chart & Statistics -->
+        <section class="lg:col-span-7 flex flex-col gap-5">
           
-          <!-- Regression Equation & R2 Card -->
-          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between">
-            <div>
-              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">추세선 방정식 & 결정계수</span>
-              <div class="mt-2 space-y-1">
-                <p id="statFormula" class="text-lg font-bold text-brand-600 dark:text-brand-400 font-mono">-</p>
-                <div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-2">
-                  <div>결정계수 ($R^2$): <span id="statR2" class="font-semibold text-slate-800 dark:text-slate-100 font-mono">-</span></div>
-                  <div>상관계수 ($r$): <span id="statR" class="font-semibold text-slate-800 dark:text-slate-100 font-mono">-</span></div>
+          <!-- Chart Canvas Container -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col relative min-h-[360px] sm:min-h-[420px]">
+            <div class="flex items-center justify-between mb-4">
+              <h2 id="chartTitle" class="font-bold text-base flex items-center gap-2">
+                <i data-lucide="line-chart" class="w-5 h-5 text-brand-500"></i>
+                산점도 차트
+              </h2>
+            </div>
+
+            <!-- Chart Area -->
+            <div class="relative flex-1 w-full h-full min-h-[300px]">
+              <canvas id="scatterChart"></canvas>
+              <div id="noDataOverlay" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/80 dark:bg-slate-900/80 rounded-xl backdrop-blur-sm z-10">
+                <i data-lucide="file-spread-sheet" class="w-12 h-12 text-slate-300 dark:text-slate-600 mb-2"></i>
+                <p class="text-sm font-medium text-slate-500 dark:text-slate-400">좌측 박스에 데이터를 붙여넣어주세요.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Statistical Summary Cards -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            
+            <!-- Regression Equation & R2 Card -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col justify-between">
+              <div>
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">추세선 방정식 & 결정계수</span>
+                <div class="mt-2 space-y-1">
+                  <p id="statFormula" class="text-lg font-bold text-brand-600 dark:text-brand-400 font-mono">-</p>
+                  <div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 mt-2">
+                    <div>결정계수 ($R^2$): <span id="statR2" class="font-semibold text-slate-800 dark:text-slate-100 font-mono">-</span></div>
+                    <div>상관계수 ($r$): <span id="statR" class="font-semibold text-slate-800 dark:text-slate-100 font-mono">-</span></div>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700/50 text-[11px] text-slate-400">
+                $R^2$ 값이 1에 가까울수록 모델의 설명력이 높습니다.
+              </div>
+            </div>
+
+            <!-- Basic Statistics Card -->
+            <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">요약 통계량</span>
+              <div class="grid grid-cols-2 gap-3 mt-3">
+                <div class="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <span class="text-[11px] text-slate-400 block">데이터 개수 ($n$)</span>
+                  <span id="statN" class="text-sm font-bold font-mono">0</span>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <span class="text-[11px] text-slate-400 block">기울기 / 2차 계수</span>
+                  <span id="statSlope" class="text-sm font-bold font-mono">-</span>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <span class="text-[11px] text-slate-400 block">X 평균 / 표준편차</span>
+                  <span id="statXMean" class="text-xs font-bold font-mono block text-slate-700 dark:text-slate-200">-</span>
+                </div>
+                <div class="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <span class="text-[11px] text-slate-400 block">Y 평균 / 표준편차</span>
+                  <span id="statYMean" class="text-xs font-bold font-mono block text-slate-700 dark:text-slate-200">-</span>
                 </div>
               </div>
             </div>
-            <div class="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700/50 text-[11px] text-slate-400">
-              $R^2$ 값이 1에 가까울수록 모델의 설명력이 높습니다.
+
+          </div>
+
+          <!-- Y Value Prediction Section -->
+          <div class="lg:col-span-12 bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
+            <div class="flex items-center gap-2 border-b border-slate-100 dark:border-slate-700/50 pb-3 mb-4">
+              <div class="p-2 bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400 rounded-xl">
+                <i data-lucide="calculator" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h3 class="font-bold text-sm">Y 값 예측 계산기</h3>
+                <p class="text-xs text-slate-400">현재 계산된 추세선 수식을 이용해 임의의 X값에 대한 Y 예측값을 계산합니다.</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+              <div>
+                <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1" id="predictXLabel">X값 입력</label>
+                <input type="number" id="predictXInput" step="any" class="w-full text-sm p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none font-mono" placeholder="예: 4.5">
+              </div>
+
+              <div class="flex items-center justify-center pt-4 md:pt-0">
+                <i data-lucide="arrow-right" class="w-6 h-6 text-slate-300 hidden md:block"></i>
+                <i data-lucide="arrow-down" class="w-6 h-6 text-slate-300 md:hidden"></i>
+              </div>
+
+              <div class="bg-slate-50 dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-center">
+                <span class="text-xs text-slate-400 block mb-1" id="predictYLabel">예측된 Y 값</span>
+                <span id="predictedYResult" class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">-</span>
+                <p id="predictFormulaNote" class="text-[11px] text-slate-400 mt-1 truncate">추세선을 체크해 주세요</p>
+              </div>
             </div>
           </div>
 
-          <!-- Basic Statistics Card -->
-          <div class="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">요약 통계량</span>
-            <div class="grid grid-cols-2 gap-3 mt-3">
-              <div class="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
-                <span class="text-[11px] text-slate-400 block">데이터 개수 ($n$)</span>
-                <span id="statN" class="text-sm font-bold font-mono">0</span>
-              </div>
-              <div class="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
-                <span class="text-[11px] text-slate-400 block">기울기 / 2차 계수</span>
-                <span id="statSlope" class="text-sm font-bold font-mono">-</span>
-              </div>
-              <div class="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
-                <span class="text-[11px] text-slate-400 block">X 평균 / 표준편차</span>
-                <span id="statXMean" class="text-xs font-bold font-mono block text-slate-700 dark:text-slate-200">-</span>
-              </div>
-              <div class="bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
-                <span class="text-[11px] text-slate-400 block">Y 평균 / 표준편차</span>
-                <span id="statYMean" class="text-xs font-bold font-mono block text-slate-700 dark:text-slate-200">-</span>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- Y Value Prediction Section -->
-        <div class="lg:col-span-12 bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm">
-          <div class="flex items-center gap-2 border-b border-slate-100 dark:border-slate-700/50 pb-3 mb-4">
-            <div class="p-2 bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400 rounded-xl">
-              <i data-lucide="calculator" class="w-5 h-5"></i>
-            </div>
-            <div>
-              <h3 class="font-bold text-sm">Y 값 예측 계산기</h3>
-              <p class="text-xs text-slate-400">현재 계산된 추세선 수식을 이용해 임의의 X값에 대한 Y 예측값을 계산합니다.</p>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-            <div>
-              <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1" id="predictXLabel">X값 입력</label>
-              <input type="number" id="predictXInput" step="any" class="w-full text-sm p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-500 focus:outline-none font-mono" placeholder="예: 4.5">
-            </div>
-
-            <div class="flex items-center justify-center pt-4 md:pt-0">
-              <i data-lucide="arrow-right" class="w-6 h-6 text-slate-300 hidden md:block"></i>
-              <i data-lucide="arrow-down" class="w-6 h-6 text-slate-300 md:hidden"></i>
-            </div>
-
-            <div class="bg-slate-50 dark:bg-slate-900/80 p-4 rounded-xl border border-slate-200 dark:border-slate-700 text-center">
-              <span class="text-xs text-slate-400 block mb-1" id="predictYLabel">예측된 Y 값</span>
-              <span id="predictedYResult" class="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">-</span>
-              <p id="predictFormulaNote" class="text-[11px] text-slate-400 mt-1 truncate">추세선을 선택해주세요</p>
-            </div>
-          </div>
-        </div>
-
+        </section>
       </main>
     </div>
   </div>
@@ -286,11 +287,11 @@
       parsedData: { headers: [], rows: [] },
       xColIndex: 0,
       yColIndex: 1,
-      enableTrendline: false, // Default: Trendline disabled
-      trendType: 'linear', // 'linear', 'poly'
+      enableTrendline: false,
+      trendType: 'linear',
       showEquationOnChart: true,
       chartInstance: null,
-      currentCoeffs: null // Store active regression coefficients
+      currentCoeffs: null
     };
 
     // DOM Elements
@@ -301,7 +302,6 @@
     const chartTitle = document.getElementById('chartTitle');
     const sampleDataBtn = document.getElementById('sampleDataBtn');
     const clearDataBtn = document.getElementById('clearDataBtn');
-    const downloadChartBtn = document.getElementById('downloadChartBtn');
     const downloadFullReportBtn = document.getElementById('downloadFullReportBtn');
     const themeToggleBtn = document.getElementById('themeToggleBtn');
     const enableTrendline = document.getElementById('enableTrendline');
@@ -329,7 +329,7 @@
     const statXMean = document.getElementById('statXMean');
     const statYMean = document.getElementById('statYMean');
 
-    // Sample Data ( 공부시간 vs 시험점수 )
+    // Sample Data
     const SAMPLE_DATA = `공부시간(시간)\t시험점수(점)\t출석률(%)
 1.5\t52\t70
 2.0\t55\t75
@@ -370,15 +370,19 @@
         updateAnalysis();
       });
 
-      sampleDataBtn.addEventListener('click', () => {
-        rawInput.value = SAMPLE_DATA;
-        processPastedData();
-      });
+      if (sampleDataBtn) {
+        sampleDataBtn.addEventListener('click', () => {
+          rawInput.value = SAMPLE_DATA;
+          processPastedData();
+        });
+      }
 
-      clearDataBtn.addEventListener('click', () => {
-        rawInput.value = '';
-        processPastedData();
-      });
+      if (clearDataBtn) {
+        clearDataBtn.addEventListener('click', () => {
+          rawInput.value = '';
+          processPastedData();
+        });
+      }
 
       enableTrendline.addEventListener('change', (e) => {
         state.enableTrendline = e.target.checked;
@@ -409,8 +413,9 @@
         updateAnalysis();
       });
 
-      downloadChartBtn.addEventListener('click', downloadChart);
-      downloadFullReportBtn.addEventListener('click', downloadFullReport);
+      if (downloadFullReportBtn) {
+        downloadFullReportBtn.addEventListener('click', downloadFullReport);
+      }
 
       predictXInput.addEventListener('input', calculatePrediction);
 
@@ -420,18 +425,16 @@
       });
     }
 
-    // Full Page Report Capture Function (High DPI Optimized)
+    // Full Page Report Capture Function (High DPI & Clear Text Optimized)
     async function downloadFullReport() {
       const reportElement = document.getElementById('reportContainer');
-      const studentId = studentIdInput.value.trim();
-      const studentName = studentNameInput.value.trim();
 
       try {
         const canvas = await html2canvas(reportElement, {
-          scale: Math.max(window.devicePixelRatio || 1, 3), // 고해상도 3배율 적용으로 폰트 깨짐 방지
+          scale: 3, // 3배율 적용으로 폰트 선명화
           useCORS: true,
           allowTaint: true,
-          letterRendering: 1, // 글자 렌더링 정확도 향상
+          letterRendering: true,
           backgroundColor: document.documentElement.classList.contains('dark') ? '#0f172a' : '#f8fafc'
         });
 
@@ -461,24 +464,19 @@
 
       noDataOverlay.classList.add('hidden');
 
-      // Split lines and detect delimiter (\t, ,, or whitespace)
       const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
       if (lines.length === 0) return;
 
-      // Detect Delimiter from first line
       const firstLine = lines[0];
       let delimiter = '\t';
       if (firstLine.includes('\t')) delimiter = '\t';
       else if (firstLine.includes(',')) delimiter = ',';
-      else delimiter = /\s+/;
 
       const rawGrid = lines.map(line => line.trim().split(delimiter));
 
-      // Header detection
       let headers = [];
       let startRow = 0;
 
-      // Check if first row contains non-numeric values
       const firstRowHasNaN = rawGrid[0].some(val => isNaN(parseFloat(val)));
       if (firstRowHasNaN) {
         headers = rawGrid[0].map(h => h.trim());
@@ -488,7 +486,6 @@
         startRow = 0;
       }
 
-      // Parse numerical rows
       const rows = [];
       for (let i = startRow; i < rawGrid.length; i++) {
         const parsedRow = rawGrid[i].map(val => parseFloat(val));
@@ -513,7 +510,6 @@
         yAxisSelect.add(optionY);
       });
 
-      // Default X = 0, Y = 1 if available
       state.xColIndex = 0;
       state.yColIndex = headers.length > 1 ? 1 : 0;
 
@@ -534,7 +530,6 @@
       const xIdx = state.xColIndex;
       const yIdx = state.yColIndex;
 
-      // Extract valid (X, Y) numerical pairs
       const points = [];
       rows.forEach(row => {
         const x = row[xIdx];
@@ -549,10 +544,8 @@
         return;
       }
 
-      // Sort points by X for proper line rendering
       points.sort((a, b) => a.x - b.x);
 
-      // Basic Statistics
       const n = points.length;
       const xVals = points.map(p => p.x);
       const yVals = points.map(p => p.y);
@@ -563,7 +556,6 @@
       const yStd = stdDev(yVals, yMean);
       const r = pearsonCorrelation(points, xMean, yMean);
 
-      // Trendline Calculations
       let trendPoints = [];
       let formulaText = '-';
       let r2Val = '-';
@@ -609,12 +601,10 @@
         state.currentCoeffs = null;
       }
 
-      // Update Prediction Labels & Re-Calculate Prediction
       predictXLabel.textContent = `X값 (${headers[xIdx] || 'X'}) 입력`;
       predictYLabel.textContent = `예측된 Y (${headers[yIdx] || 'Y'}) 값`;
       calculatePrediction();
 
-      // Update Statistics Cards
       statFormula.textContent = formulaText;
       statR2.textContent = r2Val;
       statR.textContent = isNaN(r) ? '-' : r.toFixed(4);
@@ -623,13 +613,11 @@
       statXMean.textContent = `${xMean.toFixed(2)} / ±${xStd.toFixed(2)}`;
       statYMean.textContent = `${yMean.toFixed(2)} / ±${yStd.toFixed(2)}`;
 
-      // Update Chart Title & Labels
       const xLabel = headers[xIdx] || 'X';
       const yLabel = headers[yIdx] || 'Y';
       chartTitle.innerHTML = `<i data-lucide="line-chart" class="w-5 h-5 text-brand-500"></i> ${xLabel} vs ${yLabel}`;
       lucide.createIcons();
 
-      // Render Chart
       renderChart(points, trendPoints, xLabel, yLabel, formulaText);
     }
 
@@ -638,7 +626,7 @@
       const val = parseFloat(predictXInput.value);
       if (isNaN(val) || !state.currentCoeffs) {
         predictedYResult.textContent = '-';
-        predictFormulaNote.textContent = state.trendType === 'none' ? '추세선 유형을 선형 또는 다항식으로 설정하세요.' : 'X값을 입력해 주세요.';
+        predictFormulaNote.textContent = !state.enableTrendline ? '추세선 표시를 체크해 주세요' : 'X값을 입력해 주세요.';
         return;
       }
 
@@ -725,7 +713,7 @@
           type: 'line',
           label: state.showEquationOnChart ? `추세선 (${formulaText})` : '추세선',
           data: trendPoints,
-          borderColor: '#dc2626', // Vibrant Red (Tailwind red-600)
+          borderColor: '#dc2626',
           backgroundColor: '#dc2626',
           borderWidth: 2.5,
           pointRadius: 0,
@@ -774,7 +762,6 @@
       return num / (Math.sqrt(denX) * Math.sqrt(denY));
     }
 
-    // Linear Regression y = mx + b
     function calcLinearRegression(points, xMean, yMean) {
       let num = 0;
       let den = 0;
@@ -786,7 +773,6 @@
       const m = den !== 0 ? num / den : 0;
       const b = yMean - m * xMean;
 
-      // Calc R-squared
       const ssTot = points.reduce((sum, p) => sum + Math.pow(p.y - yMean, 2), 0);
       const ssRes = points.reduce((sum, p) => sum + Math.pow(p.y - (m * p.x + b), 2), 0);
       const r2 = ssTot !== 0 ? 1 - (ssRes / ssTot) : 0;
@@ -794,7 +780,6 @@
       return { m, b, r2 };
     }
 
-    // Quadratic Polynomial Regression y = ax^2 + bx + c (Least Squares System)
     function calcPolyRegression2(points) {
       const n = points.length;
       let sumX = 0, sumX2 = 0, sumX3 = 0, sumX4 = 0;
@@ -812,11 +797,6 @@
         sumXY += x * y;
         sumX2Y += x2 * y;
       });
-
-      // Matrix System A * [a, b, c] = B
-      // [ sumX4  sumX3  sumX2 ] [ a ]   [ sumX2Y ]
-      // [ sumX3  sumX2  sumX  ] [ b ] = [ sumXY  ]
-      // [ sumX2  sumX   n     ] [ c ]   [ sumY   ]
 
       const A = [
         [sumX4, sumX3, sumX2],
@@ -838,26 +818,23 @@
       return { a, b, c, r2 };
     }
 
-    // Solve 3x3 Linear System using Cramer's Rule
     function solve3x3(A, B) {
       const detA = det3x3(A);
       if (Math.abs(detA) < 1e-12) return [0, 0, 0];
 
-      const A0 = [B, A[0].slice(1), A[1].slice(1), A[2].slice(1)]; // replace col 0
       const A1 = [A[0].slice(), A[1].slice(), A[2].slice()];
       const A2 = [A[0].slice(), A[1].slice(), A[2].slice()];
 
-      for (let i = 0; i < 3; i++) {
-        A1[i][1] = B[i];
-        A2[i][2] = B[i];
-      }
-
-      // Re-construct correct matrix swaps for A0
       const M0 = [
         [B[0], A[0][1], A[0][2]],
         [B[1], A[1][1], A[1][2]],
         [B[2], A[2][1], A[2][2]]
       ];
+
+      for (let i = 0; i < 3; i++) {
+        A1[i][1] = B[i];
+        A2[i][2] = B[i];
+      }
 
       return [det3x3(M0) / detA, det3x3(A1) / detA, det3x3(A2) / detA];
     }
@@ -867,15 +844,7 @@
              m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) +
              m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
     }
-
-    // Export Chart as Image
-    function downloadChart() {
-      if (!state.chartInstance) return;
-      const link = document.createElement('a');
-      link.download = 'scatterplot_trendline.png';
-      link.href = state.chartInstance.toBase64Image();
-      link.click();
-    }
   </script>
 </body>
 </html>
+</script>
