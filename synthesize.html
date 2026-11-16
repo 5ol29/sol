@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>행렬의 연산으로 이미지 합성하기 (수업용 실습 앱)</title>
+  <title>행렬의 연산으로 컬러 이미지 합성하기 (수업용 실습 앱)</title>
   <!-- KaTeX 수식 렌더링 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
@@ -16,6 +16,9 @@
       --accent-light: #fef3c7;
       --success: #10b981;
       --success-light: #d1fae5;
+      --r-color: #ef4444;
+      --g-color: #16a34a;
+      --b-color: #2563eb;
       --bg: #f8fafc;
       --card: #ffffff;
       --text: #1e293b;
@@ -36,7 +39,7 @@
       color: var(--text);
       line-height: 1.5;
       padding-bottom: 60px;
-      touch-action: manipulation; /* 더블탭 확대 방지 */
+      touch-action: manipulation;
     }
 
     header {
@@ -104,8 +107,7 @@
       flex-wrap: wrap;
       gap: 12px;
       align-items: center;
-      margin-bottom: 16px;
-      padding: 12px;
+      padding: 14px;
       background: #f1f5f9;
       border-radius: 12px;
     }
@@ -116,6 +118,7 @@
       gap: 8px;
       font-size: 0.92rem;
       font-weight: 600;
+      flex-wrap: wrap;
     }
 
     select, button, input[type="text"] {
@@ -127,7 +130,7 @@
       background: white;
       color: var(--text);
       cursor: pointer;
-      min-height: 44px; /* 태블릿 터치 권장 높이 */
+      min-height: 44px;
     }
 
     button {
@@ -151,57 +154,37 @@
     }
 
     button.preset-btn.active {
-      background: var(--primary-light);
+      background: var(--primary);
       border-color: var(--primary);
-      color: var(--primary);
+      color: white;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
     }
 
-    /* 업로드 박스 */
-    .upload-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 16px;
-    }
-
-    .upload-box {
-      border: 2px dashed #cbd5e1;
-      border-radius: 12px;
-      padding: 14px;
-      text-align: center;
-      background: #fafafa;
+    /* RGB 채널 선택 탭 */
+    .channel-tabs {
       display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
     }
 
-    .upload-box h4 {
-      margin: 0;
-      font-size: 1rem;
-    }
-
-    .file-label {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 10px 16px;
-      background: white;
-      border: 1px solid #cbd5e1;
+    .ch-tab {
+      padding: 8px 16px;
       border-radius: 10px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      cursor: pointer;
-      min-height: 44px;
+      border: 2px solid #cbd5e1;
+      background: white;
+      font-weight: 700;
+      min-height: 42px;
     }
 
-    input[type="file"] {
-      display: none;
-    }
+    .ch-tab.active-r { border-color: var(--r-color); background: #fef2f2; color: var(--r-color); }
+    .ch-tab.active-g { border-color: var(--g-color); background: #f0fdf4; color: var(--g-color); }
+    .ch-tab.active-b { border-color: var(--b-color); background: #eff6ff; color: var(--b-color); }
 
     /* Step 2: 이미지와 행렬 나란히 보기 */
     .matrix-pair-container {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
       gap: 20px;
     }
 
@@ -218,6 +201,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      font-size: 0.95rem;
     }
 
     .visual-and-grid {
@@ -233,6 +217,12 @@
       flex-direction: column;
       align-items: center;
       gap: 6px;
+    }
+
+    canvas.pixel-view {
+      image-rendering: pixelated;
+      aspect-ratio: 1 / 1;
+      border-radius: 8px;
     }
 
     .grid-scroll-wrap {
@@ -256,14 +246,15 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.75rem;
+      font-size: 0.74rem;
       font-weight: 700;
       cursor: pointer;
       transition: transform 0.08s ease;
     }
 
     .matrix-cell.selected {
-      outline: 3px solid var(--highlight);
+      outline: 3px solid #facc15;
+      box-shadow: 0 0 0 2px #0f172a;
       z-index: 2;
       transform: scale(1.08);
     }
@@ -328,7 +319,7 @@
 
     .blend-flow {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
       gap: 16px;
       align-items: start;
     }
@@ -394,13 +385,22 @@
       height: 20px;
       accent-color: var(--primary);
     }
+
+    .rgb-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      margin-right: 4px;
+    }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>🧮 행렬의 연산으로 이미지 합성하기</h1>
-  <p>이미지를 숫자 행렬로 바꾸고, 실수배와 덧셈(αA + (1-α)B)으로 두 이미지를 합성해 봅시다.</p>
+  <h1>🎨 행렬의 연산으로 컬러 이미지 합성하기</h1>
+  <p>컬러 이미지를 R, G, B 세 행렬로 나누어 확인하고, 실수배와 덧셈(αA + (1-α)B)으로 두 컬러 이미지를 합성해 봅시다.</p>
 </header>
 
 <div class="container">
@@ -409,15 +409,15 @@
   <section class="step-card">
     <div class="step-header">
       <span class="step-badge">Step 1</span>
-      <h2 class="step-title">이미지 선택 및 픽셀화 (행렬 크기 정하기)</h2>
+      <h2 class="step-title">컬러 샘플 이미지 & 행렬 크기 선택하기</h2>
     </div>
 
     <div class="controls-row">
       <div class="control-group">
-        <span>샘플 그림:</span>
-        <button class="preset-btn active" onclick="loadPreset('smileHeart', this)">😊 스마일 & ❤️ 하트</button>
-        <button class="preset-btn" onclick="loadPreset('stripes', this)">🏁 가로줄 & 세로줄</button>
-        <button class="preset-btn" onclick="loadPreset('numbers', this)">1️⃣ 숫자 1 & 2️⃣ 숫자 2</button>
+        <span>수업용 컬러 그림:</span>
+        <button class="preset-btn active" onclick="loadPreset('smileHeart', this)">😊 노란 스마일 & ❤️ 빨간 하트</button>
+        <button class="preset-btn" onclick="loadPreset('colorGrid', this)">🟩 초록 격자 & 🟦 파란 물결</button>
+        <button class="preset-btn" onclick="loadPreset('numbers', this)">1️⃣ 분홍 1 & 2️⃣ 하늘 2</button>
       </div>
 
       <div class="control-group">
@@ -425,38 +425,7 @@
         <select id="gridSize" onchange="updateGridSize()">
           <option value="8" selected>8 × 8 (추천)</option>
           <option value="12">12 × 12</option>
-          <option value="16">16 × 16</option>
         </select>
-      </div>
-
-      <div class="control-group">
-        <label for="colorChannel">색상 모드:</label>
-        <select id="colorChannel" onchange="recalculateAll()">
-          <option value="gray" selected>흑백 밝기 (0~255)</option>
-          <option value="r">RGB 중 Red 채널</option>
-          <option value="g">RGB 중 Green 채널</option>
-          <option value="b">RGB 중 Blue 채널</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="upload-grid">
-      <div class="upload-box">
-        <h4>이미지 A (첫 번째 행렬)</h4>
-        <label class="file-label">
-          📁 내 기기에서 이미지 A 고르기
-          <input type="file" accept="image/*" onchange="handleImageUpload(event, 'A')" />
-        </label>
-        <span style="font-size:0.82rem; color:var(--muted);">사진을 올리면 자동으로 선택한 크기로 픽셀화됩니다.</span>
-      </div>
-
-      <div class="upload-box">
-        <h4>이미지 B (두 번째 행렬)</h4>
-        <label class="file-label">
-          📁 내 기기에서 이미지 B 고르기
-          <input type="file" accept="image/*" onchange="handleImageUpload(event, 'B')" />
-        </label>
-        <span style="font-size:0.82rem; color:var(--muted);">숫자가 0에 가까울수록 어둡고, 255에 가까울수록 밝습니다.</span>
       </div>
     </div>
   </section>
@@ -465,23 +434,31 @@
   <section class="step-card">
     <div class="step-header">
       <span class="step-badge">Step 2</span>
-      <h2 class="step-title">이미지를 행렬(숫자 배열)로 확인하기</h2>
+      <h2 class="step-title">컬러 이미지와 R · G · B 행렬 동시에 보기</h2>
     </div>
-    <p style="margin-top:0; font-size:0.92rem; color:var(--muted);">
-      💡 <strong>행렬의 아무 칸이나 터치(클릭)</strong>하면 모든 표에서 같은 위치의 픽셀이 빨간 테두리로 표시됩니다.
-    </p>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+      <div class="channel-tabs" style="margin-bottom:0;">
+        <button id="tabR" class="ch-tab active-r" onclick="setActiveChannel('r')">🔴 Red 행렬 보기</button>
+        <button id="tabG" class="ch-tab" onclick="setActiveChannel('g')">🟢 Green 행렬 보기</button>
+        <button id="tabB" class="ch-tab" onclick="setActiveChannel('b')">🔵 Blue 행렬 보기</button>
+      </div>
+      <span style="font-size:0.88rem; color:var(--muted);">
+        💡 왼쪽은 <strong>실제 컬러 이미지</strong>, 오른쪽은 선택한 색 채널의 <strong>행렬 숫자</strong>입니다. 칸을 터치해 보세요!
+      </span>
+    </div>
 
     <div class="matrix-pair-container">
-      <!-- 행렬 A -->
+      <!-- 이미지 & 행렬 A -->
       <div class="matrix-panel">
         <div class="panel-title">
-          <span>행렬 A (픽셀 밝기 값)</span>
-          <span id="sizeTagA" style="font-size:0.85rem; color:var(--primary);">8×8 행렬</span>
+          <span>이미지 A & <span id="labelMatA" style="color:var(--r-color);">Red 행렬 (R_A)</span></span>
+          <span id="sizeTagA" style="font-size:0.85rem; color:var(--primary);">8×8</span>
         </div>
         <div class="visual-and-grid">
           <div class="pixel-canvas-wrap">
-            <canvas id="canvasA" width="144" height="144" style="border:2px solid #334155; border-radius:6px;"></canvas>
-            <span style="font-size:0.8rem; color:var(--muted);">픽셀 그림 A</span>
+            <canvas id="canvasA" class="pixel-view" width="144" height="144" style="width:144px; height:144px; border:2px solid #334155;"></canvas>
+            <span style="font-size:0.8rem; font-weight:600; color:var(--text);">컬러 그림 A</span>
           </div>
           <div class="grid-scroll-wrap">
             <div id="gridA" class="matrix-grid"></div>
@@ -489,16 +466,16 @@
         </div>
       </div>
 
-      <!-- 행렬 B -->
+      <!-- 이미지 & 행렬 B -->
       <div class="matrix-panel">
         <div class="panel-title">
-          <span>행렬 B (픽셀 밝기 값)</span>
-          <span id="sizeTagB" style="font-size:0.85rem; color:var(--primary);">8×8 행렬</span>
+          <span>이미지 B & <span id="labelMatB" style="color:var(--r-color);">Red 행렬 (R_B)</span></span>
+          <span id="sizeTagB" style="font-size:0.85rem; color:var(--primary);">8×8</span>
         </div>
         <div class="visual-and-grid">
           <div class="pixel-canvas-wrap">
-            <canvas id="canvasB" width="144" height="144" style="border:2px solid #334155; border-radius:6px;"></canvas>
-            <span style="font-size:0.8rem; color:var(--muted);">픽셀 그림 B</span>
+            <canvas id="canvasB" class="pixel-view" width="144" height="144" style="width:144px; height:144px; border:2px solid #334155;"></canvas>
+            <span style="font-size:0.8rem; font-weight:600; color:var(--text);">컬러 그림 B</span>
           </div>
           <div class="grid-scroll-wrap">
             <div id="gridB" class="matrix-grid"></div>
@@ -512,7 +489,7 @@
   <section class="step-card">
     <div class="step-header">
       <span class="step-badge">Step 3</span>
-      <h2 class="step-title">행렬의 실수배와 덧셈으로 이미지 합성하기</h2>
+      <h2 class="step-title">행렬의 실수배와 덧셈으로 컬러 이미지 합성하기</h2>
     </div>
 
     <div class="alpha-control-box">
@@ -539,10 +516,13 @@
       <!-- αA -->
       <div class="matrix-panel">
         <div class="panel-title">
-          <span id="titleAlphaA">① 실수배 행렬: 0.5 A</span>
+          <span id="titleAlphaA">① 실수배: 0.5 A</span>
         </div>
         <div class="visual-and-grid">
-          <canvas id="canvasAlphaA" width="120" height="120" style="border:2px solid #334155; border-radius:6px;"></canvas>
+          <div class="pixel-canvas-wrap">
+            <canvas id="canvasAlphaA" class="pixel-view" width="120" height="120" style="width:120px; height:120px; border:2px solid #334155;"></canvas>
+            <span style="font-size:0.78rem; color:var(--muted);">컬러 0.5A</span>
+          </div>
           <div class="grid-scroll-wrap">
             <div id="gridAlphaA" class="matrix-grid"></div>
           </div>
@@ -552,10 +532,13 @@
       <!-- (1-α)B -->
       <div class="matrix-panel" id="panelBetaB">
         <div class="panel-title">
-          <span id="titleBetaB">② 실수배 행렬: 0.5 B</span>
+          <span id="titleBetaB">② 실수배: 0.5 B</span>
         </div>
         <div class="visual-and-grid">
-          <canvas id="canvasBetaB" width="120" height="120" style="border:2px solid #334155; border-radius:6px;"></canvas>
+          <div class="pixel-canvas-wrap">
+            <canvas id="canvasBetaB" class="pixel-view" width="120" height="120" style="width:120px; height:120px; border:2px solid #334155;"></canvas>
+            <span style="font-size:0.78rem; color:var(--muted);">컬러 0.5B</span>
+          </div>
           <div class="grid-scroll-wrap">
             <div id="gridBetaB" class="matrix-grid"></div>
           </div>
@@ -565,10 +548,13 @@
       <!-- 결과 C -->
       <div class="matrix-panel" style="border: 2px solid var(--primary); background: #eff6ff;">
         <div class="panel-title">
-          <span id="titleResultC" style="color:var(--primary);">③ 합성 결과 행렬 C</span>
+          <span id="titleResultC" style="color:var(--primary);">③ 최종 합성 컬러 이미지 C</span>
         </div>
         <div class="visual-and-grid">
-          <canvas id="canvasC" width="144" height="144" style="border:2px solid var(--primary); border-radius:6px;"></canvas>
+          <div class="pixel-canvas-wrap">
+            <canvas id="canvasC" class="pixel-view" width="144" height="144" style="width:144px; height:144px; border:2px solid var(--primary);"></canvas>
+            <span style="font-size:0.8rem; font-weight:700; color:var(--primary);">합성 컬러 그림 C</span>
+          </div>
           <div class="grid-scroll-wrap">
             <div id="gridC" class="matrix-grid"></div>
           </div>
@@ -581,14 +567,14 @@
   <section class="step-card">
     <div class="step-header">
       <span class="step-badge">Step 4</span>
-      <h2 class="step-title">한 칸씩 계산 과정 확인 & 목표 밝기 맞추기 도전!</h2>
+      <h2 class="step-title">선택한 픽셀의 R·G·B 동시 계산 & 목표 밝기 맞추기 도전!</h2>
     </div>
 
     <div class="detail-grid">
-      <!-- 선택한 픽셀 계산 과정 -->
+      <!-- 선택한 픽셀 계산 과정 (R, G, B 모두 표시) -->
       <div class="calc-card">
-        <span class="badge-tag" style="background:var(--primary-light); color:var(--primary);">🔍 선택한 픽셀 계산 돋보기</span>
-        <div id="cellCalcDetail" style="font-size:0.96rem; line-height:1.7;"></div>
+        <span class="badge-tag" style="background:var(--primary-light); color:var(--primary);">🔍 선택한 픽셀의 R · G · B 계산 돋보기</span>
+        <div id="cellCalcDetail" style="font-size:0.93rem; line-height:1.65;"></div>
       </div>
 
       <!-- 직관적 탐구 미션 -->
@@ -607,41 +593,62 @@
         <input type="text" id="studentInfo" placeholder="학번과 이름 입력 (예: 20315 김수학)" style="width:240px;" />
         <button class="primary" onclick="downloadReportPNG()">📸 활동 결과 이미지(PNG) 저장</button>
       </div>
-      <span style="font-size:0.84rem; color:var(--muted);">현재 설정한 α 값과 선택한 칸의 계산 과정이 한 장의 이미지로 저장됩니다.</span>
+      <span style="font-size:0.84rem; color:var(--muted);">합성된 컬러 이미지와 선택한 칸의 R·G·B 계산 과정이 한 장의 이미지로 저장됩니다.</span>
     </div>
   </section>
 
 </div>
 
-<!-- 숨겨진 리사이징용 캔버스 -->
 <canvas id="helperCanvas" style="display:none;"></canvas>
 
 <script>
   let N = 8;
   let alpha = 0.5;
+  let activeChannel = 'r'; // 'r', 'g', 'b'
   let selectedRow = 2;
   let selectedCol = 3;
 
-  // 원본 RGBA 데이터 저장 (N x N)
+  // 원본 RGB 2D 배열 ({r, g, b})
   let rawA = [];
   let rawB = [];
 
-  // 현재 채널의 2D 행렬 (0~255)
-  let matA = [];
-  let matB = [];
-  let matAlphaA = [];
-  let matBetaB = [];
-  let matC = [];
+  // 합성 결과 RGB 2D 배열 ({r, g, b})
+  let resAlphaA = [];
+  let resBetaB = [];
+  let resC = [];
 
   // 미션 상태
   let missionRow = 2;
   let missionCol = 3;
+  let missionChannel = 'r';
   let missionTargetVal = 128;
 
-  // 초기 실행
   window.addEventListener('DOMContentLoaded', () => {
     loadPreset('smileHeart');
   });
+
+  function setActiveChannel(ch) {
+    activeChannel = ch;
+    document.getElementById('tabR').className = 'ch-tab' + (ch === 'r' ? ' active-r' : '');
+    document.getElementById('tabG').className = 'ch-tab' + (ch === 'g' ? ' active-g' : '');
+    document.getElementById('tabB').className = 'ch-tab' + (ch === 'b' ? ' active-b' : '');
+
+    const names = {
+      r: { label: 'Red 행렬', color: 'var(--r-color)', sym: 'R' },
+      g: { label: 'Green 행렬', color: 'var(--g-color)', sym: 'G' },
+      b: { label: 'Blue 행렬', color: 'var(--b-color)', sym: 'B' }
+    };
+
+    const info = names[ch];
+    const elA = document.getElementById('labelMatA');
+    const elB = document.getElementById('labelMatB');
+    elA.textContent = `${info.label} (${info.sym}_A)`;
+    elA.style.color = info.color;
+    elB.textContent = `${info.label} (${info.sym}_B)`;
+    elB.style.color = info.color;
+
+    recalculateAll();
+  }
 
   function loadPreset(type, btn) {
     if (btn) {
@@ -662,8 +669,8 @@
     const activeBtn = document.querySelector('.preset-btn.active');
     let type = 'smileHeart';
     if (activeBtn) {
-      if (activeBtn.textContent.includes('가로줄')) type = 'stripes';
-      else if (activeBtn.textContent.includes('숫자')) type = 'numbers';
+      if (activeBtn.textContent.includes('격자')) type = 'colorGrid';
+      else if (activeBtn.textContent.includes('분홍')) type = 'numbers';
     }
     rawA = createPresetData(type, 'A', N);
     rawB = createPresetData(type, 'B', N);
@@ -677,13 +684,12 @@
     c.height = size;
     const ctx = c.getContext('2d');
 
-    // 어두운 배경
-    ctx.fillStyle = '#1e293b';
-    ctx.fillRect(0, 0, size, size);
-
     if (type === 'smileHeart') {
       if (which === 'A') {
-        // 스마일 얼굴
+        // 남색 배경 + 노란 스마일
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(0, 0, size, size);
+
         ctx.fillStyle = '#facc15';
         ctx.beginPath();
         ctx.arc(size / 2, size / 2, size * 0.42, 0, Math.PI * 2);
@@ -692,7 +698,7 @@
         ctx.fillStyle = '#0f172a';
         const eyeOffset = size * 0.16;
         const eyeY = size * 0.38;
-        const r = Math.max(1, size * 0.07);
+        const r = Math.max(1, size * 0.08);
         ctx.fillRect(Math.floor(size / 2 - eyeOffset - r / 2), Math.floor(eyeY), Math.ceil(r), Math.ceil(r));
         ctx.fillRect(Math.floor(size / 2 + eyeOffset - r / 2), Math.floor(eyeY), Math.ceil(r), Math.ceil(r));
 
@@ -702,8 +708,11 @@
         ctx.arc(size / 2, size * 0.52, size * 0.22, 0.15 * Math.PI, 0.85 * Math.PI);
         ctx.stroke();
       } else {
-        // 하트 모양
-        ctx.fillStyle = '#f43f5e';
+        // 연분홍 배경 + 빨간 하트
+        ctx.fillStyle = '#1e1b4b';
+        ctx.fillRect(0, 0, size, size);
+
+        ctx.fillStyle = '#ef4444';
         const s = size / 8;
         const heartMap = [
           [0,1,1,0,0,1,1,0],
@@ -723,16 +732,26 @@
           }
         }
       }
-    } else if (type === 'stripes') {
-      ctx.fillStyle = '#ffffff';
-      for (let i = 0; i < size; i++) {
-        if (i % 2 === 0) {
-          if (which === 'A') ctx.fillRect(0, i, size, 1);
-          else ctx.fillRect(i, 0, 1, size);
+    } else if (type === 'colorGrid') {
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, size, size);
+      if (which === 'A') {
+        // 초록/노랑 가로줄
+        for (let i = 0; i < size; i++) {
+          ctx.fillStyle = i % 2 === 0 ? '#22c55e' : '#eab308';
+          ctx.fillRect(0, i, size, 1);
+        }
+      } else {
+        // 파랑/하늘 세로줄
+        for (let i = 0; i < size; i++) {
+          ctx.fillStyle = i % 2 === 0 ? '#3b82f6' : '#ec4899';
+          ctx.fillRect(i, 0, 1, size);
         }
       }
     } else if (type === 'numbers') {
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = which === 'A' ? '#f43f5e' : '#38bdf8';
       ctx.font = `bold ${Math.floor(size * 0.85)}px sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -754,60 +773,6 @@
       result.push(row);
     }
     return result;
-  }
-
-  function handleImageUpload(event, which) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const img = new Image();
-      img.onload = function() {
-        const c = document.getElementById('helperCanvas');
-        c.width = N;
-        c.height = N;
-        const ctx = c.getContext('2d');
-        ctx.drawImage(img, 0, 0, N, N);
-        const imgData = ctx.getImageData(0, 0, N, N).data;
-
-        const parsed = [];
-        for (let r = 0; r < N; r++) {
-          const row = [];
-          for (let col = 0; col < N; col++) {
-            const idx = (r * N + col) * 4;
-            row.push({
-              r: imgData[idx],
-              g: imgData[idx + 1],
-              b: imgData[idx + 2]
-            });
-          }
-          parsed.push(row);
-        }
-
-        if (which === 'A') rawA = parsed;
-        else rawB = parsed;
-
-        recalculateAll();
-        newMission();
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function extractChannelMatrix(raw) {
-    const ch = document.getElementById('colorChannel').value;
-    return raw.map(row =>
-      row.map(px => {
-        if (ch === 'r') return px.r;
-        if (ch === 'g') return px.g;
-        if (ch === 'b') return px.b;
-        return Math.round(0.299 * px.r + 0.587 * px.g + 0.114 * px.b);
-      })
-    );
   }
 
   function toggleSoloMode() {
@@ -847,48 +812,60 @@
   }
 
   function recalculateAll() {
-    matA = extractChannelMatrix(rawA);
-    matB = extractChannelMatrix(rawB);
-
     const solo = document.getElementById('soloScalarMode').checked;
     const beta = solo ? 0 : Math.round((1 - alpha) * 10) / 10;
 
-    matAlphaA = [];
-    matBetaB = [];
-    matC = [];
+    resAlphaA = [];
+    resBetaB = [];
+    resC = [];
 
     for (let r = 0; r < N; r++) {
       const rowAA = [];
       const rowBB = [];
       const rowC = [];
       for (let c = 0; c < N; c++) {
-        const valAA = Math.round(alpha * matA[r][c]);
-        const valBB = solo ? 0 : Math.round(beta * matB[r][c]);
-        const sumVal = Math.min(255, Math.max(0, valAA + valBB));
+        const pA = rawA[r][c];
+        const pB = rawB[r][c];
 
-        rowAA.push(Math.min(255, valAA));
-        rowBB.push(Math.min(255, valBB));
-        rowC.push(sumVal);
+        const aa = {
+          r: Math.min(255, Math.round(alpha * pA.r)),
+          g: Math.min(255, Math.round(alpha * pA.g)),
+          b: Math.min(255, Math.round(alpha * pA.b))
+        };
+        const bb = solo ? { r: 0, g: 0, b: 0 } : {
+          r: Math.min(255, Math.round(beta * pB.r)),
+          g: Math.min(255, Math.round(beta * pB.g)),
+          b: Math.min(255, Math.round(beta * pB.b))
+        };
+        const cc = {
+          r: Math.min(255, aa.r + bb.r),
+          g: Math.min(255, aa.g + bb.g),
+          b: Math.min(255, aa.b + bb.b)
+        };
+
+        rowAA.push(aa);
+        rowBB.push(bb);
+        rowC.push(cc);
       }
-      matAlphaA.push(rowAA);
-      matBetaB.push(rowBB);
-      matC.push(rowC);
+      resAlphaA.push(rowAA);
+      resBetaB.push(rowBB);
+      resC.push(rowC);
     }
 
-    // 텍스트 & 수식 갱신
     document.getElementById('alphaValueText').textContent = alpha.toFixed(1);
-    document.getElementById('sizeTagA').textContent = `${N}×${N} 행렬`;
-    document.getElementById('sizeTagB').textContent = `${N}×${N} 행렬`;
+    document.getElementById('sizeTagA').textContent = `${N}×${N}`;
+    document.getElementById('sizeTagB').textContent = `${N}×${N}`;
 
-    document.getElementById('titleAlphaA').textContent = `① 실수배 행렬: ${alpha.toFixed(1)} A`;
-    document.getElementById('titleBetaB').textContent = `② 실수배 행렬: ${beta.toFixed(1)} B`;
+    const chUpper = activeChannel.toUpperCase();
+    document.getElementById('titleAlphaA').textContent = `① 실수배: ${alpha.toFixed(1)} A (${chUpper}행렬)`;
+    document.getElementById('titleBetaB').textContent = `② 실수배: ${beta.toFixed(1)} B (${chUpper}행렬)`;
     document.getElementById('titleResultC').textContent = solo
-      ? `③ 결과 행렬 C = ${alpha.toFixed(1)} A`
-      : `③ 합성 결과 행렬 C`;
+      ? `③ 결과 컬러 C = ${alpha.toFixed(1)} A`
+      : `③ 최종 합성 컬러 이미지 C`;
 
     const tex = solo
-      ? `C = ${alpha.toFixed(1)}A \\quad (\\text{255를 넘으면 255로 고정})`
-      : `C = ${alpha.toFixed(1)}A + ${beta.toFixed(1)}B`;
+      ? `C = ${alpha.toFixed(1)}A \\quad (R, G, B \\text{ 각 행렬에 } ${alpha.toFixed(1)}\\text{배})`
+      : `C = ${alpha.toFixed(1)}A + ${beta.toFixed(1)}B \\quad (R, G, B \\text{ 세 행렬 각각 연산})`;
 
     const formulaEl = document.getElementById('formulaBox');
     if (window.katex) {
@@ -897,24 +874,25 @@
       formulaEl.textContent = solo ? `C = ${alpha.toFixed(1)}A` : `C = ${alpha.toFixed(1)}A + ${beta.toFixed(1)}B`;
     }
 
-    // 캔버스 및 그리드 렌더링
-    renderMatrixToCanvas('canvasA', matA);
-    renderMatrixToCanvas('canvasB', matB);
-    renderMatrixToCanvas('canvasAlphaA', matAlphaA);
-    renderMatrixToCanvas('canvasBetaB', matBetaB);
-    renderMatrixToCanvas('canvasC', matC);
+    // 풀컬러 캔버스 렌더링
+    renderColorCanvas('canvasA', rawA);
+    renderColorCanvas('canvasB', rawB);
+    renderColorCanvas('canvasAlphaA', resAlphaA);
+    renderColorCanvas('canvasBetaB', resBetaB);
+    renderColorCanvas('canvasC', resC);
 
-    renderMatrixGrid('gridA', matA);
-    renderMatrixGrid('gridB', matB);
-    renderMatrixGrid('gridAlphaA', matAlphaA);
-    renderMatrixGrid('gridBetaB', matBetaB);
-    renderMatrixGrid('gridC', matC);
+    // 선택된 채널(R/G/B) 행렬 그리드 렌더링
+    renderChannelGrid('gridA', rawA, activeChannel);
+    renderChannelGrid('gridB', rawB, activeChannel);
+    renderChannelGrid('gridAlphaA', resAlphaA, activeChannel);
+    renderChannelGrid('gridBetaB', resBetaB, activeChannel);
+    renderChannelGrid('gridC', resC, activeChannel);
 
     updateCellDetail();
     checkMissionStatus();
   }
 
-  function renderMatrixToCanvas(canvasId, matrix) {
+  function renderColorCanvas(canvasId, rgbMatrix) {
     const canvas = document.getElementById(canvasId);
     const ctx = canvas.getContext('2d');
     const cellW = canvas.width / N;
@@ -922,12 +900,12 @@
 
     for (let r = 0; r < N; r++) {
       for (let c = 0; c < N; c++) {
-        const v = matrix[r][c];
-        ctx.fillStyle = `rgb(${v}, ${v}, ${v})`;
+        const px = rgbMatrix[r][c];
+        ctx.fillStyle = `rgb(${px.r}, ${px.g}, ${px.b})`;
         ctx.fillRect(c * cellW, r * cellH, Math.ceil(cellW), Math.ceil(cellH));
 
         if (r === selectedRow && c === selectedCol) {
-          ctx.strokeStyle = '#ef4444';
+          ctx.strokeStyle = '#facc15';
           ctx.lineWidth = 3;
           ctx.strokeRect(c * cellW + 1.5, r * cellH + 1.5, cellW - 3, cellH - 3);
         }
@@ -935,22 +913,27 @@
     }
   }
 
-  function renderMatrixGrid(gridId, matrix) {
+  function renderChannelGrid(gridId, rgbMatrix, ch) {
     const gridEl = document.getElementById(gridId);
     gridEl.style.gridTemplateColumns = `repeat(${N}, minmax(30px, 1fr))`;
     gridEl.innerHTML = '';
 
     for (let r = 0; r < N; r++) {
       for (let c = 0; c < N; c++) {
-        const val = matrix[r][c];
+        const val = rgbMatrix[r][c][ch];
         const cell = document.createElement('div');
         cell.className = 'matrix-cell';
         if (r === selectedRow && c === selectedCol) {
           cell.classList.add('selected');
         }
         cell.textContent = val;
-        cell.style.backgroundColor = `rgb(${val}, ${val}, ${val})`;
-        cell.style.color = val > 130 ? '#0f172a' : '#f8fafc';
+
+        // 채널별 색상 틴트 배경
+        if (ch === 'r') cell.style.backgroundColor = `rgb(${val}, 20, 20)`;
+        else if (ch === 'g') cell.style.backgroundColor = `rgb(20, ${val}, 30)`;
+        else cell.style.backgroundColor = `rgb(20, 40, ${val})`;
+
+        cell.style.color = val > 145 ? '#0f172a' : '#f8fafc';
 
         cell.onclick = () => {
           selectedRow = r;
@@ -967,47 +950,59 @@
     const solo = document.getElementById('soloScalarMode').checked;
     const beta = solo ? 0 : Math.round((1 - alpha) * 10) / 10;
 
-    const aVal = matA[selectedRow][selectedCol];
-    const bVal = matB[selectedRow][selectedCol];
-    const aaVal = matAlphaA[selectedRow][selectedCol];
-    const bbVal = matBetaB[selectedRow][selectedCol];
-    const cVal = matC[selectedRow][selectedCol];
+    const pA = rawA[selectedRow][selectedCol];
+    const pB = rawB[selectedRow][selectedCol];
+    const pC = resC[selectedRow][selectedCol];
 
     const rDisp = selectedRow + 1;
     const cDisp = selectedCol + 1;
 
     let html = `
-      <div style="margin-bottom:8px;">
-        현재 선택한 위치: <strong>(${rDisp}행, ${cDisp}열)</strong>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+        <span>선택한 픽셀 위치: <strong>(${rDisp}행, ${cDisp}열)</strong></span>
+        <span style="display:inline-flex; align-items:center; gap:6px; font-size:0.85rem;">
+          합성 색상:
+          <span style="display:inline-block; width:20px; height:20px; border-radius:4px; border:1px solid #334155; background:rgb(${pC.r},${pC.g},${pC.b});"></span>
+          <strong>(${pC.r}, ${pC.g}, ${pC.b})</strong>
+        </span>
       </div>
-      <div>• 행렬 A의 값 (<span style="font-family:serif;">a<sub>${rDisp}${cDisp}</sub></span>) = <strong>${aVal}</strong></div>
     `;
 
-    if (solo) {
-      const rawProd = (alpha * aVal).toFixed(1);
-      html += `
-        <div>• 실수배 계산: ${alpha.toFixed(1)} × ${aVal} = ${rawProd} → 반올림(최대 255): <strong style="color:var(--primary); font-size:1.1rem;">${cVal}</strong></div>
-      `;
-    } else {
-      html += `
-        <div>• 행렬 B의 값 (<span style="font-family:serif;">b<sub>${rDisp}${cDisp}</sub></span>) = <strong>${bVal}</strong></div>
-        <div style="margin-top:8px; padding:10px; background:white; border-radius:8px; border:1px solid #e2e8f0;">
-          <strong>계산 과정:</strong><br/>
-          (${alpha.toFixed(1)} × ${aVal}) + (${beta.toFixed(1)} × ${bVal})<br/>
-          = ${aaVal} + ${bbVal} = <strong style="color:var(--primary); font-size:1.15rem;">${cVal}</strong>
-        </div>
-      `;
-    }
+    const rows = [
+      { name: 'R', bg: '#fee2e2', fg: '#b91c1c', a: pA.r, b: pB.r, c: pC.r },
+      { name: 'G', bg: '#dcfce7', fg: '#15803d', a: pA.g, b: pB.g, c: pC.g },
+      { name: 'B', bg: '#dbeafe', fg: '#1d4ed8', a: pA.b, b: pB.b, c: pC.b }
+    ];
+
+    rows.forEach(item => {
+      if (solo) {
+        html += `
+          <div style="margin-bottom:5px;">
+            <span class="rgb-pill" style="background:${item.bg}; color:${item.fg};">${item.name}</span>
+            ${alpha.toFixed(1)} × ${item.a} = <strong>${item.c}</strong>
+          </div>
+        `;
+      } else {
+        html += `
+          <div style="margin-bottom:5px;">
+            <span class="rgb-pill" style="background:${item.bg}; color:${item.fg};">${item.name}</span>
+            (${alpha.toFixed(1)} × ${item.a}) + (${beta.toFixed(1)} × ${item.b}) = <strong>${item.c}</strong>
+          </div>
+        `;
+      }
+    });
 
     document.getElementById('cellCalcDetail').innerHTML = html;
   }
 
   function newMission() {
-    // A와 B 값이 서로 다른 칸을 우선 선택
+    const channels = ['r', 'g', 'b'];
+    missionChannel = channels[Math.floor(Math.random() * channels.length)];
+
     let candidates = [];
     for (let r = 0; r < N; r++) {
       for (let c = 0; c < N; c++) {
-        if (Math.abs(matA[r][c] - matB[r][c]) >= 40) {
+        if (Math.abs(rawA[r][c][missionChannel] - rawB[r][c][missionChannel]) >= 50) {
           candidates.push({ r, c });
         }
       }
@@ -1021,16 +1016,15 @@
       missionCol = pick.c;
     }
 
-    // 0.1 ~ 0.9 중 랜덤 목표 alpha 설정
     const targetAlpha = (Math.floor(Math.random() * 9) + 1) / 10;
     const targetBeta = Math.round((1 - targetAlpha) * 10) / 10;
-    const vA = matA[missionRow][missionCol];
-    const vB = matB[missionRow][missionCol];
+    const vA = rawA[missionRow][missionCol][missionChannel];
+    const vB = rawB[missionRow][missionCol][missionChannel];
     missionTargetVal = Math.min(255, Math.round(targetAlpha * vA) + Math.round(targetBeta * vB));
 
     selectedRow = missionRow;
     selectedCol = missionCol;
-    recalculateAll();
+    setActiveChannel(missionChannel);
   }
 
   function checkMissionStatus() {
@@ -1044,7 +1038,8 @@
       return;
     }
 
-    const currentVal = matC[missionRow][missionCol];
+    const chNames = { r: 'Red(빨강)', g: 'Green(초록)', b: 'Blue(파랑)' };
+    const currentVal = resC[missionRow][missionCol][missionChannel];
     const rDisp = missionRow + 1;
     const cDisp = missionCol + 1;
     const isSolved = Math.abs(currentVal - missionTargetVal) <= 1;
@@ -1056,14 +1051,14 @@
           🎉 정답입니다! 미션 성공!
         </div>
         <div>
-          <strong>(${rDisp}행, ${cDisp}열)</strong>의 밝기를 목표값(<strong>${missionTargetVal}</strong>)으로 정확히 맞췄어요! (현재 α = ${alpha.toFixed(1)})
+          <strong>(${rDisp}행, ${cDisp}열)</strong>의 <strong>${chNames[missionChannel]}</strong> 값을 목표값(<strong>${missionTargetVal}</strong>)으로 맞췄어요! (현재 α = ${alpha.toFixed(1)})
         </div>
       `;
     } else {
       box.classList.remove('solved');
       textEl.innerHTML = `
         <div style="margin-bottom:6px;">
-          가중치 <strong>α 슬라이더</strong>를 움직여서, 합성 결과 행렬 C의 <strong>(${rDisp}행, ${cDisp}열)</strong> 숫자를 목표값과 똑같이 만들어 보세요!
+          가중치 <strong>α 슬라이더</strong>를 움직여서, 합성 결과 C의 <strong>(${rDisp}행, ${cDisp}열)</strong> <strong>${chNames[missionChannel]}</strong> 숫자를 목표값과 똑같이 만들어 보세요!
         </div>
         <div style="background:white; padding:8px 12px; border-radius:8px; display:flex; justify-content:space-around; font-weight:700;">
           <span>🎯 목표 숫자: <span style="color:#d97706; font-size:1.15rem;">${missionTargetVal}</span></span>
@@ -1080,26 +1075,25 @@
 
     const rDisp = selectedRow + 1;
     const cDisp = selectedCol + 1;
-    const aVal = matA[selectedRow][selectedCol];
-    const bVal = matB[selectedRow][selectedCol];
-    const cVal = matC[selectedRow][selectedCol];
+    const pA = rawA[selectedRow][selectedCol];
+    const pB = rawB[selectedRow][selectedCol];
+    const pC = resC[selectedRow][selectedCol];
 
     const out = document.createElement('canvas');
     out.width = 800;
-    out.height = 500;
+    out.height = 560;
     const ctx = out.getContext('2d');
 
-    // 배경
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, out.width, out.height);
 
-    // 상단 헤더 바
+    // 상단 헤더
     ctx.fillStyle = '#1e3a8a';
     ctx.fillRect(0, 0, out.width, 75);
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 24px sans-serif';
-    ctx.fillText('행렬의 연산을 이용한 이미지 합성 실습 결과', 30, 46);
+    ctx.font = 'bold 23px sans-serif';
+    ctx.fillText('행렬의 연산을 이용한 컬러 이미지 합성 실습 결과', 30, 46);
 
     ctx.font = '16px sans-serif';
     ctx.textAlign = 'right';
@@ -1108,44 +1102,49 @@
 
     // 수식 요약
     ctx.fillStyle = '#1e293b';
-    ctx.font = 'bold 20px sans-serif';
+    ctx.font = 'bold 19px sans-serif';
     const eqText = solo
-      ? `적용 수식: C = ${alpha.toFixed(1)} A  (행렬 크기: ${N}×${N})`
-      : `적용 수식: C = ${alpha.toFixed(1)} A + ${beta.toFixed(1)} B  (행렬 크기: ${N}×${N})`;
-    ctx.fillText(eqText, 30, 118);
+      ? `적용 수식: C = ${alpha.toFixed(1)} A  (행렬 크기: ${N}×${N}, R·G·B 각 채널 연산)`
+      : `적용 수식: C = ${alpha.toFixed(1)} A + ${beta.toFixed(1)} B  (행렬 크기: ${N}×${N}, R·G·B 각 채널 연산)`;
+    ctx.fillText(eqText, 30, 115);
 
-    // 세 이미지 캔버스 복사
-    const cA = document.getElementById('canvasA');
-    const cB = document.getElementById('canvasB');
-    const cC = document.getElementById('canvasC');
+    // 정사각형 이미지 3개 배치
+    ctx.drawImage(document.getElementById('canvasA'), 50, 145, 165, 165);
+    ctx.drawImage(document.getElementById('canvasB'), 290, 145, 165, 165);
+    ctx.drawImage(document.getElementById('canvasC'), 540, 140, 175, 175);
 
-    ctx.drawImage(cA, 40, 150, 170, 170);
-    ctx.drawImage(cB, 280, 150, 170, 170);
-    ctx.drawImage(cC, 540, 150, 190, 190);
-
-    ctx.font = 'bold 16px sans-serif';
+    ctx.font = 'bold 15px sans-serif';
     ctx.fillStyle = '#334155';
-    ctx.fillText('이미지 A', 92, 345);
-    ctx.fillText('이미지 B', 332, 345);
+    ctx.fillText('컬러 이미지 A', 88, 335);
+    ctx.fillText('컬러 이미지 B', 328, 335);
     ctx.fillStyle = '#2563eb';
-    ctx.fillText('합성 결과 C', 595, 365);
+    ctx.fillText('합성 결과 컬러 C', 575, 340);
 
-    // 하단 계산 박스
+    // 하단 R, G, B 계산 상세 박스
     ctx.fillStyle = '#f1f5f9';
-    ctx.fillRect(30, 390, out.width - 60, 85);
+    ctx.fillRect(30, 365, out.width - 60, 165);
 
     ctx.fillStyle = '#0f172a';
     ctx.font = 'bold 16px sans-serif';
-    ctx.fillText(`[선택한 좌표 (${rDisp}행, ${cDisp}열) 계산 검증]`, 50, 422);
+    ctx.fillText(`[선택한 픽셀 (${rDisp}행, ${cDisp}열)의 R · G · B 행렬 계산 검증]`, 50, 395);
 
-    ctx.font = '16px sans-serif';
-    const detailLine = solo
-      ? `a_${rDisp}${cDisp} = ${aVal}  →  ${alpha.toFixed(1)} × ${aVal} = ${cVal}`
-      : `a_${rDisp}${cDisp} = ${aVal},  b_${rDisp}${cDisp} = ${bVal}  →  (${alpha.toFixed(1)} × ${aVal}) + (${beta.toFixed(1)} × ${bVal}) = ${cVal}`;
-    ctx.fillText(detailLine, 50, 452);
+    ctx.font = '15px sans-serif';
+    const lines = solo ? [
+      `• Red   : ${alpha.toFixed(1)} × ${pA.r} = ${pC.r}`,
+      `• Green : ${alpha.toFixed(1)} × ${pA.g} = ${pC.g}`,
+      `• Blue  : ${alpha.toFixed(1)} × ${pA.b} = ${pC.b}   → 최종 RGB = (${pC.r}, ${pC.g}, ${pC.b})`
+    ] : [
+      `• Red   : (${alpha.toFixed(1)} × ${pA.r}) + (${beta.toFixed(1)} × ${pB.r}) = ${pC.r}`,
+      `• Green : (${alpha.toFixed(1)} × ${pA.g}) + (${beta.toFixed(1)} × ${pB.g}) = ${pC.g}`,
+      `• Blue  : (${alpha.toFixed(1)} × ${pA.b}) + (${beta.toFixed(1)} × ${pB.b}) = ${pC.b}   → 최종 RGB = (${pC.r}, ${pC.g}, ${pC.b})`
+    ];
+
+    lines.forEach((line, idx) => {
+      ctx.fillText(line, 50, 428 + idx * 28);
+    });
 
     const link = document.createElement('a');
-    link.download = `행렬이미지합성_${student}.png`;
+    link.download = `컬러행렬_이미지합성_${student}.png`;
     link.href = out.toDataURL('image/png');
     link.click();
   }
