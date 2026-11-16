@@ -349,6 +349,22 @@
       border-color: var(--success);
     }
 
+    .mission-tab-btn {
+      padding: 6px 12px;
+      min-height: 36px;
+      font-size: 0.84rem;
+      border-radius: 8px;
+      background: white;
+      border: 1px solid #cbd5e1;
+      color: var(--text);
+    }
+
+    .mission-tab-btn.active-tab {
+      background: #1e293b;
+      color: white;
+      border-color: #1e293b;
+    }
+
     .badge-tag {
       display: inline-block;
       padding: 3px 10px;
@@ -356,11 +372,10 @@
       font-size: 0.82rem;
       font-weight: 700;
       background: white;
-      margin-bottom: 8px;
     }
 
     .mission-checklist {
-      background: rgba(255, 255, 255, 0.75);
+      background: rgba(255, 255, 255, 0.8);
       border-radius: 8px;
       padding: 10px 12px;
       margin: 10px 0;
@@ -593,17 +608,24 @@
     <div class="detail-grid">
       <!-- 선택한 픽셀 계산 과정 (R, G, B 모두 표시) -->
       <div class="calc-card">
-        <span class="badge-tag" style="background:var(--primary-light); color:var(--primary);">🔍 현재 내가 터치한 픽셀 계산 돋보기</span>
+        <span class="badge-tag" style="background:var(--primary-light); color:var(--primary); margin-bottom:8px;">🔍 현재 내가 터치한 픽셀 계산 돋보기</span>
         <div id="cellCalcDetail" style="font-size:0.93rem; line-height:1.65;"></div>
       </div>
 
-      <!-- 학생 주도형 탐구 미션 -->
+      <!-- 학생 주도형 탐구 미션 (유형①, 유형② 상태 각각 독립 유지) -->
       <div class="mission-card" id="missionBox">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:8px; flex-wrap:wrap;">
-          <span class="badge-tag">🎯 학생 탐구 미션 (<span id="solvedCountBadge">0문제 성공</span>)</span>
-          <div style="display:flex; gap:6px;">
-            <button onclick="newMission('findAlpha')" style="padding:6px 10px; min-height:36px; font-size:0.82rem;">유형① α 찾기</button>
-            <button onclick="newMission('calcValue')" style="padding:6px 10px; min-height:36px; font-size:0.82rem;">유형② 직접 계산</button>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:8px; flex-wrap:wrap;">
+          <span class="badge-tag">🎯 학생 탐구 미션</span>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button id="btnMission1" class="mission-tab-btn active-tab" onclick="switchMissionTab('findAlpha')">
+              유형① α 찾기 <span id="badgeM1"></span>
+            </button>
+            <button id="btnMission2" class="mission-tab-btn" onclick="switchMissionTab('calcValue')">
+              유형② 직접 계산 <span id="badgeM2"></span>
+            </button>
+            <button onclick="resetCurrentMission()" style="padding:6px 10px; min-height:36px; font-size:0.82rem; background:#fff;">
+              🔄 새 문제
+            </button>
           </div>
         </div>
         <div id="missionText" style="font-size:0.94rem;"></div>
@@ -613,10 +635,10 @@
     <!-- 활동 결과 저장 -->
     <div class="export-bar">
       <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <input type="text" id="studentInfo" placeholder="학번과 이름 입력 (예: 20315 김수학)" style="width:240px;" />
+        <input type="text" id="studentInfo" placeholder="학번과 이름 입력 (예: 20901 김모락)" style="width:240px;" />
         <button class="primary" onclick="downloadReportPNG()">📸 활동 결과 이미지(PNG) 저장</button>
       </div>
-      <span style="font-size:0.84rem; color:var(--muted);">합성된 컬러 이미지와 선택한 칸의 R·G·B 계산 과정, 미션 달성 기록이 저장됩니다.</span>
+      <span style="font-size:0.84rem; color:var(--muted);">합성 이미지, 선택한 칸의 R·G·B 계산, 유형①·② 미션 풀이 기록이 모두 저장됩니다.</span>
     </div>
   </section>
 
@@ -637,15 +659,33 @@
   let resBetaB = [];
   let resC = [];
 
-  // 미션 상태 관리
-  let missionType = 'findAlpha'; // 'findAlpha' | 'calcValue'
-  let missionRow = 2;
-  let missionCol = 3;
-  let missionChannel = 'g';
-  let missionTargetAlpha = 0.4;
-  let missionTargetVal = 128;
-  let missionAlreadyCounted = false;
-  let solvedCount = 0;
+  // 현재 보고 있는 미션 탭 ('findAlpha' | 'calcValue')
+  let currentMissionTab = 'findAlpha';
+
+  // 유형①과 유형②의 상태를 독립적으로 보존하는 객체 (새로고침 누르기 전까지 유지!)
+  let missionState = {
+    findAlpha: {
+      row: 2,
+      col: 3,
+      channel: 'g',
+      targetAlpha: 0.4,
+      targetVal: 120,
+      solved: false,
+      solvedAlpha: null,
+      solvedCount: 0
+    },
+    calcValue: {
+      row: 3,
+      col: 2,
+      channel: 'b',
+      targetAlpha: 0.6,
+      targetVal: 150,
+      userInput: '',
+      feedbackHtml: '',
+      solved: false,
+      solvedCount: 0
+    }
+  };
 
   window.addEventListener('DOMContentLoaded', () => {
     loadPreset('smileHeart');
@@ -684,7 +724,9 @@
     selectedRow = 0;
     selectedCol = 0;
     recalculateAll();
-    newMission('findAlpha');
+    generateMissionFor('findAlpha', false);
+    generateMissionFor('calcValue', false);
+    renderMissionUI();
   }
 
   function updateGridSize() {
@@ -701,7 +743,9 @@
     rawA = createPresetData(type, 'A', N);
     rawB = createPresetData(type, 'B', N);
     recalculateAll();
-    newMission('findAlpha');
+    generateMissionFor('findAlpha', false);
+    generateMissionFor('calcValue', false);
+    renderMissionUI();
   }
 
   function createPresetData(type, which, size) {
@@ -909,7 +953,8 @@
     renderChannelGrid('gridC', resC, activeChannel);
 
     updateCellDetail();
-    checkMissionStatus();
+    evaluateMission1Auto();
+    renderMissionUI();
   }
 
   function renderColorCanvas(canvasId, rgbMatrix) {
@@ -1014,90 +1059,144 @@
     document.getElementById('cellCalcDetail').innerHTML = html;
   }
 
-  // 학생이 직접 찾아서 풀어야 하는 탐구 미션 출제
-  function newMission(requestedType) {
-    if (requestedType) {
-      missionType = requestedType;
-    } else {
-      missionType = missionType === 'findAlpha' ? 'calcValue' : 'findAlpha';
-    }
-    missionAlreadyCounted = false;
+  // 탭 전환만 수행 (기존 문제 및 성공 상태 절대 초기화하지 않음!)
+  function switchMissionTab(type) {
+    currentMissionTab = type;
+    document.getElementById('btnMission1').classList.toggle('active-tab', type === 'findAlpha');
+    document.getElementById('btnMission2').classList.toggle('active-tab', type === 'calcValue');
+    renderMissionUI();
+  }
 
+  // '🔄 새 문제' 버튼을 눌렀을 때만 현재 탭의 문제를 새로 출제
+  function resetCurrentMission() {
+    generateMissionFor(currentMissionTab, true);
+    renderMissionUI();
+  }
+
+  function generateMissionFor(type, keepCount) {
+    const prevCount = keepCount ? missionState[type].solvedCount : 0;
     const channels = ['r', 'g', 'b'];
-    missionChannel = channels[Math.floor(Math.random() * channels.length)];
+    const ch = channels[Math.floor(Math.random() * channels.length)];
 
-    // 현재 선택된 칸이나 현재 활성 탭과 다른 위치를 우선 골라서 탐색 재미 부여
     let candidates = [];
     for (let r = 0; r < N; r++) {
       for (let c = 0; c < N; c++) {
-        if (Math.abs(rawA[r][c][missionChannel] - rawB[r][c][missionChannel]) >= 50) {
+        if (Math.abs(rawA[r][c][ch] - rawB[r][c][ch]) >= 50) {
           if (r !== selectedRow || c !== selectedCol) {
             candidates.push({ r, c });
           }
         }
       }
     }
+    let mRow = 0, mCol = 0;
     if (candidates.length === 0) {
-      missionRow = (selectedRow + 2) % N;
-      missionCol = (selectedCol + 3) % N;
+      mRow = (selectedRow + 2) % N;
+      mCol = (selectedCol + 3) % N;
     } else {
       const pick = candidates[Math.floor(Math.random() * candidates.length)];
-      missionRow = pick.r;
-      missionCol = pick.c;
+      mRow = pick.r;
+      mCol = pick.c;
     }
 
-    // 현재 alpha와 다른 목표 alpha 설정
     let targetAlpha = (Math.floor(Math.random() * 9) + 1) / 10;
     if (Math.abs(targetAlpha - alpha) < 0.1) {
       targetAlpha = targetAlpha >= 0.5 ? 0.2 : 0.8;
     }
-    missionTargetAlpha = targetAlpha;
     const targetBeta = Math.round((1 - targetAlpha) * 10) / 10;
+    const vA = rawA[mRow][mCol][ch];
+    const vB = rawB[mRow][mCol][ch];
+    const targetVal = Math.min(255, Math.round(targetAlpha * vA) + Math.round(targetBeta * vB));
 
-    const vA = rawA[missionRow][missionCol][missionChannel];
-    const vB = rawB[missionRow][missionCol][missionChannel];
-    missionTargetVal = Math.min(255, Math.round(targetAlpha * vA) + Math.round(targetBeta * vB));
+    if (type === 'findAlpha') {
+      missionState.findAlpha = {
+        row: mRow,
+        col: mCol,
+        channel: ch,
+        targetAlpha: targetAlpha,
+        targetVal: targetVal,
+        solved: false,
+        solvedAlpha: null,
+        solvedCount: prevCount
+      };
+    } else {
+      missionState.calcValue = {
+        row: mRow,
+        col: mCol,
+        channel: ch,
+        targetAlpha: targetAlpha,
+        targetVal: targetVal,
+        userInput: '',
+        feedbackHtml: '',
+        solved: false,
+        solvedCount: prevCount
+      };
+    }
+  }
 
-    // 중요: 자동 이동하지 않고 학생이 직접 탭과 좌표를 찾도록 유지!
-    checkMissionStatus();
+  // 유형① 자동 판정 (한 번 성공하면 새 문제 누르기 전까지 성공 상태 유지)
+  function evaluateMission1Auto() {
+    const solo = document.getElementById('soloScalarMode').checked;
+    if (solo) return;
+
+    const m1 = missionState.findAlpha;
+    if (m1.solved) return; // 이미 성공했으면 상태 고정!
+
+    const isChannelMatched = activeChannel === m1.channel;
+    const isCoordMatched = selectedRow === m1.row && selectedCol === m1.col;
+    const currentVal = resC[m1.row][m1.col][m1.channel];
+    const isValueMatched = Math.abs(currentVal - m1.targetVal) <= 1;
+
+    if (isChannelMatched && isCoordMatched && isValueMatched) {
+      m1.solved = true;
+      m1.solvedAlpha = alpha;
+      m1.solvedCount += 1;
+    }
   }
 
   function checkCalcAnswer() {
+    const m2 = missionState.calcValue;
     const inputEl = document.getElementById('calcAnswerInput');
-    const feedbackEl = document.getElementById('calcFeedback');
-    if (!inputEl || !feedbackEl) return;
+    if (!inputEl) return;
 
+    m2.userInput = inputEl.value;
     const userVal = parseInt(inputEl.value, 10);
+
     if (isNaN(userVal)) {
-      feedbackEl.innerHTML = `<span style="color:#b45309;">⚠️ 숫자를 먼저 입력해 주세요!</span>`;
+      m2.feedbackHtml = `<div style="color:#b45309; font-weight:700; margin-top:6px;">⚠️ 숫자를 먼저 입력해 주세요!</div>`;
+      renderMissionUI();
       return;
     }
 
-    if (Math.abs(userVal - missionTargetVal) <= 1) {
-      if (!missionAlreadyCounted) {
-        solvedCount++;
-        missionAlreadyCounted = true;
-        document.getElementById('solvedCountBadge').textContent = `${solvedCount}문제 성공`;
+    if (Math.abs(userVal - m2.targetVal) <= 1) {
+      if (!m2.solved) {
+        m2.solved = true;
+        m2.solvedCount += 1;
       }
-      document.getElementById('missionBox').classList.add('solved');
-      feedbackEl.innerHTML = `
+      m2.feedbackHtml = `
         <div style="color:#065f46; font-weight:700; margin-top:6px;">
-          🎉 정확합니다! 정답은 <strong>${missionTargetVal}</strong>입니다! (직접 계산 성공!)
+          🎉 정확합니다! 정답은 <strong>${m2.targetVal}</strong>입니다! (유형② 직접 계산 성공!)
         </div>
       `;
     } else {
-      feedbackEl.innerHTML = `
+      m2.feedbackHtml = `
         <div style="color:#dc2626; font-weight:700; margin-top:6px;">
           ❌ 아쉬워요! 다시 계산해 보세요. (힌트: 행렬 A와 B에서 해당 칸의 숫자를 찾아 식에 대입해 보세요!)
         </div>
       `;
     }
+    renderMissionUI();
   }
 
-  function checkMissionStatus() {
+  function renderMissionUI() {
     const solo = document.getElementById('soloScalarMode').checked;
     const box = document.getElementById('missionBox');
     const textEl = document.getElementById('missionText');
+
+    // 탭 버튼 배지 갱신
+    const m1 = missionState.findAlpha;
+    const m2 = missionState.calcValue;
+    document.getElementById('badgeM1').textContent = m1.solved ? '✅' : '';
+    document.getElementById('badgeM2').textContent = m2.solved ? '✅' : '';
 
     if (solo) {
       box.classList.remove('solved');
@@ -1106,87 +1205,84 @@
     }
 
     const chNames = { r: '🔴 Red(빨강)', g: '🟢 Green(초록)', b: '🔵 Blue(파랑)' };
-    const rDisp = missionRow + 1;
-    const cDisp = missionCol + 1;
 
-    const isChannelMatched = activeChannel === missionChannel;
-    const isCoordMatched = selectedRow === missionRow && selectedCol === missionCol;
+    if (currentMissionTab === 'findAlpha') {
+      const rDisp = m1.row + 1;
+      const cDisp = m1.col + 1;
+      const isChannelMatched = activeChannel === m1.channel;
+      const isCoordMatched = selectedRow === m1.row && selectedCol === m1.col;
+      const currentVal = resC[m1.row][m1.col][m1.channel];
 
-    if (missionType === 'findAlpha') {
-      const currentVal = resC[missionRow][missionCol][missionChannel];
-      const isValueMatched = Math.abs(currentVal - missionTargetVal) <= 1;
-      const isAllDone = isChannelMatched && isCoordMatched && isValueMatched;
-
-      if (isAllDone) {
-        if (!missionAlreadyCounted) {
-          solvedCount++;
-          missionAlreadyCounted = true;
-          document.getElementById('solvedCountBadge').textContent = `${solvedCount}문제 성공`;
-        }
+      if (m1.solved) {
         box.classList.add('solved');
         textEl.innerHTML = `
           <div style="font-weight:700; color:#065f46; font-size:1.05rem; margin-bottom:6px;">
-            🎉 미션 성공! 완벽하게 찾아냈어요!
+            🎉 유형① 미션 성공! (누적 ${m1.solvedCount}회 성공)
           </div>
           <div>
-            <strong>${chNames[missionChannel]}</strong> 탭에서 <strong>(${rDisp}행, ${cDisp}열)</strong>을 찾고, <strong>α = ${alpha.toFixed(1)}</strong>일 때 목표값 <strong>${missionTargetVal}</strong>이 됨을 확인했습니다!
+            <strong>${chNames[m1.channel]}</strong> 탭의 <strong>(${rDisp}행, ${cDisp}열)</strong>에서 <strong>α = ${m1.solvedAlpha.toFixed(1)}</strong>일 때 목표값 <strong>${m1.targetVal}</strong>을 정확히 맞췄습니다!
           </div>
-          <div style="margin-top:10px;">
-            <button class="primary" onclick="newMission()" style="min-height:38px; padding:6px 14px; font-size:0.88rem;">다음 문제 도전하기 ➡</button>
+          <div style="font-size:0.84rem; color:#047857; margin-top:6px;">
+            ※ 이 성공 기록은 우측 상단 <strong>'🔄 새 문제'</strong>를 누르기 전까지 그대로 유지됩니다.
           </div>
         `;
       } else {
         box.classList.remove('solved');
         textEl.innerHTML = `
           <div style="margin-bottom:6px;">
-            <strong>[미션]</strong> 합성 결과 C의 <strong>(${rDisp}행, ${cDisp}열)</strong>에 있는 <strong>${chNames[missionChannel]}</strong> 값을 <strong>${missionTargetVal}</strong>으로 만들어 보세요!
+            <strong>[유형① 미션]</strong> 합성 결과 C의 <strong>(${rDisp}행, ${cDisp}열)</strong>에 있는 <strong>${chNames[m1.channel]}</strong> 값을 <strong>${m1.targetVal}</strong>으로 만들어 보세요!
           </div>
           <div class="mission-checklist">
             <div class="check-item ${isChannelMatched ? 'check-done' : 'check-wait'}">
-              ${isChannelMatched ? '✅' : '⬜'} 1단계: 위에서 <strong>${chNames[missionChannel]}</strong> 행렬 탭 선택하기
+              ${isChannelMatched ? '✅' : '⬜'} 1단계: 위에서 <strong>${chNames[m1.channel]}</strong> 행렬 탭 선택하기
             </div>
             <div class="check-item ${isCoordMatched ? 'check-done' : 'check-wait'}">
               ${isCoordMatched ? '✅' : '⬜'} 2단계: 행렬 격자에서 <strong>(${rDisp}행, ${cDisp}열)</strong> 칸 직접 터치하기
             </div>
-            <div class="check-item ${isValueMatched ? 'check-done' : 'check-wait'}">
-              ${isValueMatched ? '✅' : '⬜'} 3단계: α 슬라이더로 목표값 <strong>${missionTargetVal}</strong> 맞추기
+            <div class="check-item">
+              ⬜ 3단계: α 슬라이더로 목표값 <strong>${m1.targetVal}</strong> 맞추기
               ${isCoordMatched ? `(현재 내 값: <strong>${currentVal}</strong>)` : `(칸을 먼저 선택하면 현재 값이 보입니다)`}
             </div>
           </div>
         `;
       }
     } else {
-      // 유형 ②: 주어진 alpha에서 성분값 직접 계산해서 입력하기
-      const targetBeta = Math.round((1 - missionTargetAlpha) * 10) / 10;
-      const vA = rawA[missionRow][missionCol][missionChannel];
-      const vB = rawB[missionRow][missionCol][missionChannel];
+      // 유형② UI 렌더링
+      const rDisp = m2.row + 1;
+      const cDisp = m2.col + 1;
+      const isChannelMatched = activeChannel === m2.channel;
+      const isCoordMatched = selectedRow === m2.row && selectedCol === m2.col;
+      const targetBeta = Math.round((1 - m2.targetAlpha) * 10) / 10;
+      const vA = rawA[m2.row][m2.col][m2.channel];
+      const vB = rawB[m2.row][m2.col][m2.channel];
 
-      if (!missionAlreadyCounted) {
+      if (m2.solved) {
+        box.classList.add('solved');
+      } else {
         box.classList.remove('solved');
       }
 
       textEl.innerHTML = `
         <div style="margin-bottom:8px;">
-          <strong>[직접 계산 퀴즈]</strong> <strong>α = ${missionTargetAlpha.toFixed(1)}</strong>일 때, 합성 행렬 C의 <strong>(${rDisp}행, ${cDisp}열)</strong>에 있는 <strong>${chNames[missionChannel]}</strong> 성분 값은 얼마일까요?
+          <strong>[유형② 직접 계산]</strong> <strong>α = ${m2.targetAlpha.toFixed(1)}</strong>일 때, 합성 행렬 C의 <strong>(${rDisp}행, ${cDisp}열)</strong>에 있는 <strong>${chNames[m2.channel]}</strong> 성분 값은 얼마일까요?
         </div>
         <div class="mission-checklist">
           <div class="check-item ${isChannelMatched ? 'check-done' : 'check-wait'}">
-            ${isChannelMatched ? '✅' : '⬜'} 1단계: <strong>${chNames[missionChannel]}</strong> 행렬 탭을 눌러 A, B 행렬 확인하기
+            ${isChannelMatched ? '✅' : '⬜'} 1단계: <strong>${chNames[m2.channel]}</strong> 행렬 탭을 눌러 A, B 행렬 확인하기
           </div>
           <div class="check-item ${isCoordMatched ? 'check-done' : 'check-wait'}">
             ${isCoordMatched ? '✅' : '⬜'} 2단계: <strong>(${rDisp}행, ${cDisp}열)</strong> 칸을 터치해 A값과 B값 찾기
             ${isCoordMatched ? `→ <strong>A = ${vA}, B = ${vB}</strong>` : ''}
           </div>
           <div style="margin-top:4px; font-weight:600; color:#1e293b;">
-            📐 계산식: (${missionTargetAlpha.toFixed(1)} × A값) + (${targetBeta.toFixed(1)} × B값) = ?
+            📐 계산식: (${m2.targetAlpha.toFixed(1)} × A값) + (${targetBeta.toFixed(1)} × B값) = ?
           </div>
         </div>
         <div style="display:flex; gap:8px; align-items:center; margin-top:8px; flex-wrap:wrap;">
-          <input type="number" id="calcAnswerInput" placeholder="계산한 숫자 입력" style="width:160px; min-height:40px;" />
+          <input type="number" id="calcAnswerInput" value="${m2.userInput}" placeholder="계산한 숫자 입력" style="width:160px; min-height:40px;" />
           <button class="primary" onclick="checkCalcAnswer()" style="min-height:40px; padding:6px 14px;">정답 확인</button>
-          ${missionAlreadyCounted ? `<button onclick="newMission()" style="min-height:40px; padding:6px 14px;">다음 문제 ➡</button>` : ''}
         </div>
-        <div id="calcFeedback"></div>
+        <div>${m2.feedbackHtml}</div>
       `;
     }
   }
@@ -1202,15 +1298,19 @@
     const pB = rawB[selectedRow][selectedCol];
     const pC = resC[selectedRow][selectedCol];
 
+    const m1 = missionState.findAlpha;
+    const m2 = missionState.calcValue;
+    const chLabel = { r: 'Red', g: 'Green', b: 'Blue' };
+
     const out = document.createElement('canvas');
     out.width = 800;
-    out.height = 580;
+    out.height = 700; // 미션 달성 상세 내역 포함을 위해 높이 확장
     const ctx = out.getContext('2d');
 
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, out.width, out.height);
 
-    // 상단 헤더
+    // 1. 상단 헤더
     ctx.fillStyle = '#1e3a8a';
     ctx.fillRect(0, 0, out.width, 75);
 
@@ -1220,51 +1320,75 @@
 
     ctx.font = '16px sans-serif';
     ctx.textAlign = 'right';
-    ctx.fillText(`학생: ${student}  |  미션 달성: ${solvedCount}문제`, out.width - 30, 46);
+    ctx.fillText(`학생: ${student}`, out.width - 30, 46);
     ctx.textAlign = 'left';
 
-    // 수식 요약
+    // 2. 적용 수식 요약
     ctx.fillStyle = '#1e293b';
-    ctx.font = 'bold 19px sans-serif';
+    ctx.font = 'bold 18px sans-serif';
     const eqText = solo
       ? `적용 수식: C = ${alpha.toFixed(1)} A  (행렬 크기: ${N}×${N}, R·G·B 각 채널 연산)`
       : `적용 수식: C = ${alpha.toFixed(1)} A + ${beta.toFixed(1)} B  (행렬 크기: ${N}×${N}, R·G·B 각 채널 연산)`;
-    ctx.fillText(eqText, 30, 115);
+    ctx.fillText(eqText, 30, 112);
 
-    // 정사각형 이미지 3개 배치
-    ctx.drawImage(document.getElementById('canvasA'), 50, 145, 165, 165);
-    ctx.drawImage(document.getElementById('canvasB'), 290, 145, 165, 165);
-    ctx.drawImage(document.getElementById('canvasC'), 540, 140, 175, 175);
+    // 3. 정사각형 컬러 이미지 3개 배치
+    ctx.drawImage(document.getElementById('canvasA'), 50, 138, 160, 160);
+    ctx.drawImage(document.getElementById('canvasB'), 290, 138, 160, 160);
+    ctx.drawImage(document.getElementById('canvasC'), 545, 133, 170, 170);
 
     ctx.font = 'bold 15px sans-serif';
     ctx.fillStyle = '#334155';
-    ctx.fillText('컬러 이미지 A', 88, 335);
-    ctx.fillText('컬러 이미지 B', 328, 335);
+    ctx.fillText('컬러 이미지 A', 86, 322);
+    ctx.fillText('컬러 이미지 B', 326, 322);
     ctx.fillStyle = '#2563eb';
-    ctx.fillText('합성 결과 컬러 C', 575, 340);
+    ctx.fillText('합성 결과 컬러 C', 575, 327);
 
-    // 하단 R, G, B 계산 상세 박스
+    // 4. 선택한 픽셀 계산 검증 박스
     ctx.fillStyle = '#f1f5f9';
-    ctx.fillRect(30, 365, out.width - 60, 175);
+    ctx.fillRect(30, 348, out.width - 60, 155);
 
     ctx.fillStyle = '#0f172a';
-    ctx.font = 'bold 16px sans-serif';
-    ctx.fillText(`[선택한 픽셀 (${rDisp}행, ${cDisp}열)의 R · G · B 행렬 계산 검증]`, 50, 395);
+    ctx.font = 'bold 15px sans-serif';
+    ctx.fillText(`[1] 현재 선택한 픽셀 (${rDisp}행, ${cDisp}열)의 R · G · B 행렬 계산 검증`, 48, 376);
 
-    ctx.font = '15px sans-serif';
+    ctx.font = '14px sans-serif';
     const lines = solo ? [
       `• Red   : ${alpha.toFixed(1)} × ${pA.r} = ${pC.r}`,
       `• Green : ${alpha.toFixed(1)} × ${pA.g} = ${pC.g}`,
-      `• Blue  : ${alpha.toFixed(1)} × ${pA.b} = ${pC.b}   → 최종 RGB = (${pC.r}, ${pC.g}, ${pC.b})`
+      `• Blue  : ${alpha.toFixed(1)} × ${pA.b} = ${pC.b}   → 최종 합성 RGB = (${pC.r}, ${pC.g}, ${pC.b})`
     ] : [
       `• Red   : (${alpha.toFixed(1)} × ${pA.r}) + (${beta.toFixed(1)} × ${pB.r}) = ${pC.r}`,
       `• Green : (${alpha.toFixed(1)} × ${pA.g}) + (${beta.toFixed(1)} × ${pB.g}) = ${pC.g}`,
-      `• Blue  : (${alpha.toFixed(1)} × ${pA.b}) + (${beta.toFixed(1)} × ${pB.b}) = ${pC.b}   → 최종 RGB = (${pC.r}, ${pC.g}, ${pC.b})`
+      `• Blue  : (${alpha.toFixed(1)} × ${pA.b}) + (${beta.toFixed(1)} × ${pB.b}) = ${pC.b}   → 최종 합성 RGB = (${pC.r}, ${pC.g}, ${pC.b})`
     ];
 
     lines.forEach((line, idx) => {
-      ctx.fillText(line, 50, 428 + idx * 28);
+      ctx.fillText(line, 48, 406 + idx * 26);
     });
+
+    // 5. 학생 탐구 미션 (유형①, 유형②) 달성 결과 박스
+    ctx.fillStyle = '#fefce8';
+    ctx.strokeStyle = '#fde047';
+    ctx.lineWidth = 2;
+    ctx.fillRect(30, 520, out.width - 60, 145);
+    ctx.strokeRect(30, 520, out.width - 60, 145);
+
+    ctx.fillStyle = '#854d0e';
+    ctx.font = 'bold 15px sans-serif';
+    ctx.fillText('[2] 학생 탐구 미션 (유형① · 유형②) 달성 결과', 48, 550);
+
+    ctx.font = '14px sans-serif';
+    ctx.fillStyle = m1.solved ? '#065f46' : '#64748b';
+    const m1Summary = m1.solved
+      ? `✅ 유형① (α 찾기): 성공! (총 ${m1.solvedCount}회) — (${m1.row + 1}행, ${m1.col + 1}열) ${chLabel[m1.channel]} 목표값 ${m1.targetVal} (α=${m1.solvedAlpha.toFixed(1)} 달성)`
+      : `⬜ 유형① (α 찾기): 미완료 — (${m1.row + 1}행, ${m1.col + 1}열) ${chLabel[m1.channel]} 목표값 ${m1.targetVal}`;
+    ctx.fillText(m1Summary, 48, 585);
+
+    ctx.fillStyle = m2.solved ? '#065f46' : '#64748b';
+    const m2Summary = m2.solved
+      ? `✅ 유형② (직접 계산): 성공! (총 ${m2.solvedCount}회) — α=${m2.targetAlpha.toFixed(1)}, (${m2.row + 1}행, ${m2.col + 1}열) ${chLabel[m2.channel]} 정답 ${m2.targetVal} 맞춤`
+      : `⬜ 유형② (직접 계산): 미완료 — α=${m2.targetAlpha.toFixed(1)}, (${m2.row + 1}행, ${m2.col + 1}열) ${chLabel[m2.channel]} 계산 문제`;
+    ctx.fillText(m2Summary, 48, 622);
 
     const link = document.createElement('a');
     link.download = `컬러행렬_이미지합성_${student}.png`;
