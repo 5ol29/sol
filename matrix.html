@@ -1,0 +1,1152 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>이미지 행렬 실험실</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* 레이아웃: 위쪽에 4단계 진행 막대, 그 아래에 "배우기 → 실습 → 퀴즈" 순서로 이어지는 한 단계씩의 수업 화면 */
+:root{
+  --bg:#f2f5f8; --surface:#ffffff; --ink:#15202b; --muted:#566575; --line:#d3dbe3; --grid:rgba(31,95,209,.07);
+  --src:#1f5fd1; --src-soft:#e3ecfb; --dst:#c24a08; --dst-soft:#fbe8dc; --on:#ffffff;
+  --ok:#17733f; --ok-soft:#e1f3e8; --bad:#c0262d; --bad-soft:#fbe4e5;
+  --font-body:'IBM Plex Sans KR','Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e141a; --surface:#161e26; --ink:#e5ebf1; --muted:#97a6b5; --line:#2b3743; --grid:rgba(107,156,255,.07);
+    --src:#7aa7ff; --src-soft:#1a2a47; --dst:#ff9a5c; --dst-soft:#3b2517; --on:#0e141a;
+    --ok:#5fd08f; --ok-soft:#14301f; --bad:#ff7b72; --bad-soft:#3a1a1c; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e141a; --surface:#161e26; --ink:#e5ebf1; --muted:#97a6b5; --line:#2b3743; --grid:rgba(107,156,255,.07);
+  --src:#7aa7ff; --src-soft:#1a2a47; --dst:#ff9a5c; --dst-soft:#3b2517; --on:#0e141a;
+  --ok:#5fd08f; --ok-soft:#14301f; --bad:#ff7b72; --bad-soft:#3a1a1c; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background-color:var(--bg);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;
+  color:var(--ink); font-family:var(--font-body); font-size:15px; line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:24px 56px;
+}
+.wrap{max-width:1160px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1{font-size:28px;line-height:1.25;margin:0;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+h2{font-size:20px;line-height:1.3;margin:0 0 8px;text-wrap:balance}
+h3{font-size:16px;margin:0 0 8px}
+p{margin:0 0 8px}
+.lede{margin:4px 0 0;color:var(--muted);max-width:62ch}
+.muted{color:var(--muted)}
+.mono{font-family:var(--font-mono)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+.lab{font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.06em}
+.row{display:flex;flex-wrap:wrap;gap:12px 28px;align-items:flex-end}
+.grp{display:flex;flex-direction:column;gap:6px;min-width:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.btn,select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 12px;cursor:pointer;line-height:1.3}
+select{padding-right:8px}
+.btn:hover,select:hover{border-color:var(--muted)}
+.btn[aria-pressed="true"]{border-color:var(--src);background:var(--src-soft);color:var(--src);font-weight:600}
+.btn.primary{background:var(--src);border-color:var(--src);color:var(--on);font-weight:600}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:2px solid var(--src);outline-offset:2px}
+.chk{display:flex;align-items:center;gap:8px;cursor:pointer}
+.chk input{width:16px;height:16px;accent-color:var(--src)}
+
+/* 단계 진행 막대 */
+.stepper{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.step{font:inherit;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;cursor:pointer;color:var(--ink);display:flex;flex-direction:column;gap:2px;min-width:0}
+.step:hover{border-color:var(--muted)}
+.step .sn{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.step .st{font-weight:600;line-height:1.35;text-wrap:balance}
+.step .sp{font-size:12px;color:var(--muted);font-family:var(--font-mono)}
+.step[aria-current="step"]{border-color:var(--src);background:var(--src-soft)}
+.step.done{border-color:var(--ok)}
+.step.done .sp{color:var(--ok);font-weight:600}
+
+.stage-sec{display:flex;flex-direction:column;gap:16px}
+.learn ul{margin:6px 0 10px;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.learn .eq{margin-top:10px}
+.sechead{display:flex;align-items:baseline;gap:10px;margin:8px 0 0}
+.sechead h3{margin:0;font-size:18px}
+.tag{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--src);font-family:var(--font-mono)}
+.ctrls{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;margin-bottom:14px}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field > label,.field > .lbl{font-weight:600}
+.field small{color:var(--muted);font-weight:400}
+.slide{display:flex;align-items:center;gap:12px;min-width:220px}
+.slide input[type=range]{flex:1;min-width:0;accent-color:var(--src)}
+output{font-family:var(--font-mono);font-weight:600;min-width:3ch;text-align:right;font-variant-numeric:tabular-nums}
+.nudge{display:flex;gap:6px}
+.nudge .btn{width:44px;padding:6px 0;text-align:center;font-family:var(--font-mono)}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg.col{flex-direction:column;align-items:stretch}
+.seg label{position:relative}
+.seg input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.seg span{display:block;border:1px solid var(--line);border-radius:6px;padding:7px 12px;background:var(--surface);line-height:1.3}
+.seg input:checked + span{border-color:var(--src);background:var(--src-soft);color:var(--src);font-weight:600}
+.seg input:focus-visible + span{outline:2px solid var(--src);outline-offset:2px}
+.seg input:disabled + span{opacity:.7}
+.pre{display:flex;flex-wrap:wrap;gap:6px}
+.pre .btn{font-size:13px;padding:6px 10px}
+.pre .pm{padding:6px 8px;line-height:1.15}
+.pre .pm .mini{font-size:10px;gap:0 5px;padding:2px 9px}
+.pre .pm .mini::before,.pre .pm .mini::after{width:5px}
+
+.eq{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:0 0 10px;font-family:var(--font-mono);font-size:14px}
+.eq > span:not(.mini):not(.mat){color:var(--muted)}
+.mat{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:13px}
+.mat em,.eq em{font-style:italic;font-weight:600}
+.mini{display:inline-grid;grid-template-columns:repeat(var(--cols),auto);gap:1px 8px;padding:2px 11px;position:relative;font-family:var(--font-mono);font-size:13px;vertical-align:middle;font-variant-numeric:tabular-nums}
+.mini::before,.mini::after{content:"";position:absolute;top:0;bottom:0;width:6px;border:1.5px solid var(--ink)}
+.mini::before{left:0;border-right:0}
+.mini::after{right:0;border-left:0}
+.mini i{font-style:normal;text-align:center;min-width:1ch}
+.mini i.z{color:var(--muted)}
+.mini i.on{color:var(--src);font-weight:600}
+sub,sup{line-height:0}
+
+/* 행렬 보기 */
+.eqrow{display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px 14px}
+.mxfig{margin:0;min-width:0;max-width:100%}
+.mxfig figcaption{font-size:13px;color:var(--muted);font-family:var(--font-mono);margin-bottom:6px;display:flex;gap:8px;align-items:baseline}
+.mxfig figcaption b{font-size:18px}
+.mxfig.a figcaption b{color:var(--src)}
+.mxfig.b figcaption b{color:var(--dst)}
+.opch{font-family:var(--font-mono);font-size:24px;color:var(--muted);align-self:center;padding-top:22px}
+.scroll{overflow-x:auto;padding-bottom:4px;max-width:100%}
+.mxwrap{position:relative;padding:6px 14px;width:max-content}
+.mxwrap::before,.mxwrap::after{content:"";position:absolute;top:0;bottom:0;width:9px;border:2px solid var(--ink)}
+.mxwrap::before{left:0;border-right:0}
+.mxwrap::after{right:0;border-left:0}
+.mx{display:grid;gap:1px;padding:1px;background:var(--line);width:max-content}
+.cell,.bc{display:flex;align-items:center;justify-content:center;width:var(--cell);height:var(--cell);font-style:normal;font-family:var(--font-mono);font-size:var(--fs);font-variant-numeric:tabular-nums;user-select:none;overflow:hidden}
+.cell{cursor:default}
+.bc{background:var(--surface);color:var(--muted)}
+.bc.on{background:var(--src);color:var(--on);font-weight:600}
+.bc.edit{cursor:pointer}
+.bc.edit:hover{box-shadow:inset 0 0 0 2px var(--dst)}
+.ix{display:flex;align-items:center;justify-content:center;background:var(--surface);color:var(--muted);font-family:var(--font-mono);font-size:10px;line-height:1;padding:3px 4px;font-weight:400}
+.cell.hl-src,.cell.hl-dst,.cell.hl-row,.cell.hl-col,.bc.hl-row,.bc.hl-col{position:relative;z-index:1}
+.cell.hl-src{outline:3px solid var(--src);outline-offset:-3px;box-shadow:inset 0 0 0 2px var(--surface)}
+.cell.hl-dst{outline:3px solid var(--dst);outline-offset:-3px;box-shadow:inset 0 0 0 2px var(--surface)}
+.cell.hl-row,.bc.hl-row{outline:2px solid var(--src);outline-offset:-2px}
+.cell.hl-col,.bc.hl-col{outline:2px solid var(--dst);outline-offset:-2px}
+.read{min-height:3em;display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;font-family:var(--font-mono);font-size:14px;margin-top:12px}
+.read .tA{color:var(--src);font-weight:600}
+.read .tB{color:var(--dst);font-weight:600}
+.read .idle{color:var(--muted);font-family:var(--font-body)}
+.note{color:var(--muted);font-size:13px}
+.fbox{margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+
+/* 퀴즈 */
+.quiz{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+.q{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.q.solved{border-color:var(--ok)}
+.qh{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.qn{font-weight:700}
+.badge{font-size:12px;font-family:var(--font-mono);padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.q.solved .badge{border-color:var(--ok);color:var(--ok);font-weight:600}
+.qbody p{margin:0 0 8px}
+.qbody .eq{margin:6px 0}
+.qa{display:flex;flex-wrap:wrap;gap:8px}
+.qhint{background:var(--src-soft);border-radius:6px;padding:8px 12px;font-size:14px}
+.qfb{font-size:14px}
+.qfb .res{font-weight:700}
+.qfb.ok .res{color:var(--ok)}
+.qfb.no .res{color:var(--bad)}
+.qfb .ex{margin-top:6px;padding:8px 12px;background:var(--ok-soft);border-radius:6px;color:var(--ink)}
+.nf{display:inline-flex;align-items:center;gap:8px;margin:0 14px 6px 0}
+.ni,.ig input{font-family:var(--font-mono);font-size:15px;text-align:center;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink);padding:0}
+.ni{width:64px;height:38px}
+.ig{display:grid;gap:4px}
+.ig input,.ig .tg{width:46px;height:38px}
+.ig .tg{font-family:var(--font-mono);font-size:15px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--muted);cursor:pointer;padding:0}
+.ig .tg[data-v="1"]{background:var(--src);color:var(--on);border-color:var(--src);font-weight:600}
+.ni.bad,.ig .bad{border-color:var(--bad);background:var(--bad-soft);color:var(--ink)}
+.ig-wrap{margin:4px 0}
+.ctl-side{margin-bottom:8px}
+
+.stagenav{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+table.sum{border-collapse:collapse;width:100%;font-size:14px}
+table.sum th,table.sum td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+table.sum td.n{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.sumrow{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+.sumrow input[type=text]{font:inherit;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);padding:7px 10px;min-width:0;width:200px}
+.prev{margin-top:14px}.prev img{max-width:100%;height:auto;border:1px solid var(--line);border-radius:6px;display:block}
+#sid{width:130px!important}
+#toast{color:var(--muted);font-size:13px}
+#csvbox{width:100%;height:120px;font-family:var(--font-mono);font-size:12px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px;margin-top:10px}
+
+@media (max-width:600px){
+  .stepper{grid-template-columns:repeat(2,minmax(0,1fr))}
+  h1{font-size:24px}
+  .opch{padding-top:0;align-self:flex-start}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+<style>html{color-scheme:light dark}body{margin:0}</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <h1>이미지 행렬 실험실</h1>
+    <p class="lede">그림을 숫자 행렬로 바꾸고, 단계마다 직접 계산하고 퀴즈를 풀며 이동·방향 변환·전치·확대와 축소를 익혀 보세요.</p>
+  </header>
+
+  <nav class="stepper" id="stepper" aria-label="학습 단계"></nav>
+
+  <section class="card" aria-label="이미지 선택">
+    <div class="row">
+      <div class="grp">
+        <span class="lab">실습 이미지</span>
+        <div class="chips" id="samples">
+          <button class="btn" type="button" data-id="F" aria-pressed="true">글자 F</button>
+          <button class="btn" type="button" data-id="arrow" aria-pressed="false">화살표</button>
+          <button class="btn" type="button" data-id="house" aria-pressed="false">집</button>
+          <button class="btn" type="button" data-id="face" aria-pressed="false">윙크 얼굴</button>
+          <button class="btn" type="button" data-id="upload" aria-pressed="false" id="uploadChip" hidden>내 이미지</button>
+          <label class="btn" for="file">이미지 올리기</label>
+          <input type="file" id="file" accept="image/*" hidden>
+        </div>
+      </div>
+      <div class="grp">
+        <label class="lab" for="res">해상도</label>
+        <select id="res">
+          <option value="6">6 × 6</option>
+          <option value="8" selected>8 × 8</option>
+          <option value="10">10 × 10</option>
+          <option value="12">12 × 12</option>
+        </select>
+      </div>
+      <div class="grp">
+        <label class="lab" for="rng">값 범위</label>
+        <select id="rng">
+          <option value="9" selected>0 ~ 9 (읽기 쉬움)</option>
+          <option value="255">0 ~ 255 (실제 밝기)</option>
+          <option value="1">0 또는 1 (흑백)</option>
+        </select>
+      </div>
+      <label class="chk"><input type="checkbox" id="nums" checked> 숫자 표시</label>
+    </div>
+  </section>
+
+  <!-- 1단계 -->
+  <section class="stage-sec" id="stage1" data-k="1">
+    <div class="card learn">
+      <span class="tag">1단계 배우기</span>
+      <h2>행렬 곱셈을 이용한 이미지 평행이동 및 방향 변환</h2>
+      <p>이미지는 행과 열로 이루어진 행렬 <em>A</em>입니다. <em>A</em>에 행렬 <em>X</em>를 곱하면 새 이미지가 만들어집니다. 곱하는 쪽에 따라 바뀌는 방향이 달라집니다.</p>
+      <ul>
+        <li><b><em>A</em> · <em>X</em></b> (오른쪽에 곱하기): 열이 새로 섞입니다. 좌우 방향으로 밀거나 뒤집습니다.</li>
+        <li><b><em>X</em> · <em>A</em></b> (왼쪽에 곱하기): 행이 새로 섞입니다. 상하 방향으로 밀거나 뒤집습니다.</li>
+        <li><em>X</em>의 각 줄에 1이 하나뿐이면, 그 위치에 있는 줄을 그대로 가져옵니다. 단위행렬 <em>I</em>는 아무것도 바꾸지 않습니다.</li>
+      </ul>
+      <div class="eq" id="ex1"></div>
+    </div>
+
+    <div class="card">
+      <div class="sechead"><span class="tag">1단계 실습</span><h3>곱셈 실험대</h3></div>
+      <div class="ctrls">
+        <div class="field">
+          <span class="lbl">곱하는 쪽</span>
+          <div class="seg">
+            <label><input type="radio" name="s1side" value="R" checked><span><em>A</em> · <em>X</em> (오른쪽)</span></label>
+            <label><input type="radio" name="s1side" value="L"><span><em>X</em> · <em>A</em> (왼쪽)</span></label>
+          </div>
+        </div>
+        <div class="field">
+          <span class="lbl">X 불러오기</span>
+          <div class="pre" id="l1pre"></div>
+        </div>
+      </div>
+      <div class="eqrow" id="l1row">
+        <figure class="mxfig" id="l1figL"><figcaption id="l1capL"></figcaption><div class="scroll"><div class="mxwrap" id="l1L"></div></div></figure>
+        <span class="opch">×</span>
+        <figure class="mxfig" id="l1figR"><figcaption id="l1capR"></figcaption><div class="scroll"><div class="mxwrap" id="l1R"></div></div></figure>
+        <span class="opch">=</span>
+        <figure class="mxfig b"><figcaption id="l1capB"></figcaption><div class="scroll"><div class="mxwrap" id="l1B"></div></div></figure>
+      </div>
+      <div class="read" id="l1read" aria-live="polite"></div>
+      <p class="note">파란 칸이 X에서 1인 칸입니다. X의 칸을 눌러 0과 1을 바꿀 수 있습니다. 1이 여러 개 겹치면 값이 더해져 밝기가 넘칠 수 있습니다.</p>
+    </div>
+
+    <div class="sechead"><span class="tag">1단계 퀴즈</span><h3>직접 풀어 보기</h3></div>
+    <div class="quiz" id="quiz1"></div>
+    <div class="stagenav"><span></span><button class="btn primary" type="button" data-go="2">다음: 전치행렬로 방향 변환 →</button></div>
+  </section>
+
+  <!-- 2단계 -->
+  <section class="stage-sec" id="stage2" data-k="2" hidden>
+    <div class="card learn">
+      <span class="tag">2단계 배우기</span>
+      <h2>전치행렬을 이용한 이미지 방향 변환</h2>
+      <p>행렬의 행과 열을 맞바꾼 행렬을 전치행렬 <em>A</em><sup>T</sup>라고 합니다. <em>A</em>의 i행 j열 성분이 <em>A</em><sup>T</sup>의 j행 i열 성분이 됩니다. 크기가 m×n이면 <em>A</em><sup>T</sup>는 n×m입니다.</p>
+      <ul>
+        <li>전치하면 이미지가 왼쪽 위에서 오른쪽 아래로 향하는 대각선(주대각선)을 기준으로 접힌 모양이 됩니다.</li>
+        <li>주대각선 위의 성분은 전치해도 제자리에 있습니다.</li>
+        <li>전치를 두 번 하면 원래 행렬로 돌아옵니다: (<em>A</em><sup>T</sup>)<sup>T</sup> = <em>A</em></li>
+      </ul>
+      <div class="eq" id="ex2"></div>
+    </div>
+
+    <div class="card">
+      <div class="sechead"><span class="tag">2단계 실습</span><h3>전치해 보기</h3></div>
+      <div class="ctrls">
+        <label class="chk"><input type="checkbox" id="s2crop"> 위쪽 60%만 잘라 직사각형으로 보기</label>
+      </div>
+      <div class="eqrow">
+        <figure class="mxfig a"><figcaption id="l2capA"></figcaption><div class="scroll"><div class="mxwrap" id="l2A"></div></div></figure>
+        <span class="opch">→</span>
+        <figure class="mxfig b"><figcaption id="l2capT"></figcaption><div class="scroll"><div class="mxwrap" id="l2T"></div></div></figure>
+      </div>
+      <div class="read" id="l2read" aria-live="polite"></div>
+      <div class="fbox" id="l2formula"></div>
+    </div>
+
+    <div class="sechead"><span class="tag">2단계 퀴즈</span><h3>직접 풀어 보기</h3></div>
+    <div class="quiz" id="quiz2"></div>
+    <div class="stagenav"><button class="btn" type="button" data-go="1">← 이전</button><button class="btn primary" type="button" data-go="3">다음: 평행이동 →</button></div>
+  </section>
+
+  <!-- 3단계 -->
+  <section class="stage-sec" id="stage3" data-k="3" hidden>
+    <div class="card learn">
+      <span class="tag">3단계 배우기</span>
+      <h2>평행이동</h2>
+      <p>이번에는 화소의 위치를 좌표 (x, y) = (열 번호, 행 번호)로 봅니다. 모든 점을 x축 방향으로 a, y축 방향으로 b만큼 옮기면 새 위치는 (x + a, y + b)입니다. a가 양수이면 오른쪽, b가 양수이면 아래쪽입니다.</p>
+      <p>점의 위치를 행렬로 쓰면, 평행이동은 행렬의 덧셈으로 나타낼 수 있습니다.</p>
+      <div class="eq" id="ex3"></div>
+    </div>
+
+    <div class="card">
+      <div class="sechead"><span class="tag">3단계 실습</span><h3>점을 따라가며 이동하기</h3></div>
+      <div class="ctrls">
+        <div class="field">
+          <label for="t3x">가로 이동 a <small>(+는 오른쪽)</small></label>
+          <div class="slide"><input type="range" id="t3x" min="-8" max="8" step="1" value="2"><output id="t3xv">+2</output></div>
+        </div>
+        <div class="field">
+          <label for="t3y">세로 이동 b <small>(+는 아래쪽)</small></label>
+          <div class="slide"><input type="range" id="t3y" min="-8" max="8" step="1" value="1"><output id="t3yv">+1</output></div>
+        </div>
+        <div class="nudge" role="group" aria-label="한 칸씩 이동">
+          <button class="btn n3" type="button" data-dx="-1" data-dy="0" aria-label="왼쪽으로 한 칸">←</button>
+          <button class="btn n3" type="button" data-dx="0" data-dy="-1" aria-label="위로 한 칸">↑</button>
+          <button class="btn n3" type="button" data-dx="0" data-dy="1" aria-label="아래로 한 칸">↓</button>
+          <button class="btn n3" type="button" data-dx="1" data-dy="0" aria-label="오른쪽으로 한 칸">→</button>
+        </div>
+        <div class="field">
+          <span class="lbl">밀려난 칸 처리</span>
+          <div class="seg">
+            <label><input type="radio" name="s3wrap" value="0" checked><span>없애고 0으로 채움</span></label>
+            <label><input type="radio" name="s3wrap" value="1"><span>반대쪽에서 이어짐</span></label>
+          </div>
+        </div>
+      </div>
+      <div class="eqrow">
+        <figure class="mxfig a"><figcaption id="l3capA"></figcaption><div class="scroll"><div class="mxwrap" id="l3A"></div></div></figure>
+        <span class="opch">→</span>
+        <figure class="mxfig b"><figcaption id="l3capB"></figcaption><div class="scroll"><div class="mxwrap" id="l3B"></div></div></figure>
+      </div>
+      <div class="read" id="l3read" aria-live="polite"></div>
+      <div class="fbox" id="l3formula"></div>
+    </div>
+
+    <div class="sechead"><span class="tag">3단계 퀴즈</span><h3>직접 풀어 보기</h3></div>
+    <div class="quiz" id="quiz3"></div>
+    <div class="stagenav"><button class="btn" type="button" data-go="2">← 이전</button><button class="btn primary" type="button" data-go="4">다음: 확대·축소 →</button></div>
+  </section>
+
+  <!-- 4단계 -->
+  <section class="stage-sec" id="stage4" data-k="4" hidden>
+    <div class="card learn">
+      <span class="tag">4단계 배우기</span>
+      <h2>이미지 확대·축소</h2>
+      <p>이미지를 가로로 s<sub>x</sub>배, 세로로 s<sub>y</sub>배 확대하면 점 (x, y)는 (s<sub>x</sub>x, s<sub>y</sub>y)로 옮겨집니다. 이는 아래와 같이 2×2 행렬을 곱하는 것과 같습니다.</p>
+      <ul>
+        <li>1보다 큰 수를 곱하면 확대, 1보다 작은 수를 곱하면 축소입니다.</li>
+        <li>결과 크기는 (행 수 × 세로 몇 배), (열 수 × 가로 몇 배)입니다.</li>
+      </ul>
+      <div class="eq" id="ex4"></div>
+      <p>확대·축소와 평행이동을 이어서 할 때는 순서가 중요합니다. 확대한 다음 이동할 때와 이동한 다음 확대할 때 결과가 달라집니다.</p>
+      <div class="eq" id="ex4b"></div>
+    </div>
+
+    <div class="card">
+      <div class="sechead"><span class="tag">4단계 실습</span><h3>확대·축소 해 보기</h3></div>
+      <div class="ctrls">
+        <div class="field"><label for="s4x">가로로 몇 배 (s<sub>x</sub>)</label><select id="s4x"></select></div>
+        <div class="field"><label for="s4y">세로로 몇 배 (s<sub>y</sub>)</label><select id="s4y"></select></div>
+        <label class="chk"><input type="checkbox" id="s4lock" checked> 가로·세로 같은 비율</label>
+      </div>
+      <div class="eqrow">
+        <figure class="mxfig a"><figcaption id="l4capA"></figcaption><div class="scroll"><div class="mxwrap" id="l4A"></div></div></figure>
+        <span class="opch">→</span>
+        <figure class="mxfig b"><figcaption id="l4capB"></figcaption><div class="scroll"><div class="mxwrap" id="l4B"></div></div></figure>
+      </div>
+      <div class="read" id="l4read" aria-live="polite"></div>
+      <div class="fbox" id="l4formula"></div>
+    </div>
+
+    <div class="sechead"><span class="tag">4단계 퀴즈</span><h3>직접 풀어 보기</h3></div>
+    <div class="quiz" id="quiz4"></div>
+    <div class="sechead"><span class="tag">종합 퀴즈</span><h3>평행이동 + 확대·축소</h3></div>
+    <div class="quiz" id="quiz4b"></div>
+    <div class="stagenav"><button class="btn" type="button" data-go="3">← 이전</button><span></span></div>
+  </section>
+
+  <section class="card" id="summary">
+    <h3>내 학습 기록</h3>
+    <table class="sum"><thead><tr><th>단계</th><th>푼 문제</th><th>맞힌 문제</th><th>정답 확인 횟수</th></tr></thead><tbody id="sumbody"></tbody></table>
+    <p class="note" style="margin-top:8px">푼 문제는 정답 확인을 한 번 이상 누른 문제입니다.</p>
+    <div class="sumrow">
+      <input type="text" id="sid" placeholder="학번" aria-label="학번" maxlength="12" inputmode="numeric">
+      <input type="text" id="sname" placeholder="이름" aria-label="이름" maxlength="20">
+      <button class="btn primary" type="button" id="saveimg">결과 이미지 저장</button>
+      <span id="toast" role="status"></span>
+    </div>
+    <div class="prev" id="imgprev"></div>
+  </section>
+</div>
+
+<script>
+(function(){
+'use strict';
+var $=function(s){return document.querySelector(s);};
+var $$=function(s){return Array.prototype.slice.call(document.querySelectorAll(s));};
+var clamp=function(v,a,b){return Math.min(b,Math.max(a,v));};
+function ri(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+function pick(arr){return arr[ri(0,arr.length-1)];}
+function shuffle(arr){var a=arr.slice();for(var i=a.length-1;i>0;i--){var j=ri(0,i),t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function randMat(r,c,lo,hi){var M=[];for(var i=0;i<r;i++){var row=[];for(var j=0;j<c;j++){row.push(ri(lo,hi));}M.push(row);}return M;}
+function eqMat(P,Q){if(P.length!==Q.length||P[0].length!==Q[0].length){return false;}for(var i=0;i<P.length;i++){for(var j=0;j<P[0].length;j++){if(Math.abs(P[i][j]-Q[i][j])>1e-9){return false;}}}return true;}
+function sgn(v){return (v>0?'+':'')+v;}
+
+/* ---------- 행렬 도구 ---------- */
+function matmul(P,Q){var m=P.length,p=Q.length,n=Q[0].length,R=[];for(var i=0;i<m;i++){var row=[];for(var j=0;j<n;j++){var s=0;for(var k=0;k<p;k++){s+=P[i][k]*Q[k][j];}row.push(s);}R.push(row);}return R;}
+function transposeM(P){var R=[];for(var j=0;j<P[0].length;j++){var row=[];for(var i=0;i<P.length;i++){row.push(P[i][j]);}R.push(row);}return R;}
+function exch(k){var R=[];for(var i=0;i<k;i++){var row=[];for(var j=0;j<k;j++){row.push(i+j===k-1?1:0);}R.push(row);}return R;}
+function identity(k){var R=[];for(var i=0;i<k;i++){var row=[];for(var j=0;j<k;j++){row.push(i===j?1:0);}R.push(row);}return R;}
+function supM(k){var R=identity(k).map(function(r){return r.map(function(){return 0;});});for(var i=0;i<k-1;i++){R[i][i+1]=1;}return R;}
+function subM(k){var R=identity(k).map(function(r){return r.map(function(){return 0;});});for(var i=0;i<k-1;i++){R[i+1][i]=1;}return R;}
+function build(m,n,A,map){var B=[];for(var r=0;r<m;r++){var row=[];for(var c=0;c<n;c++){var p=map(r,c);row.push(p?A[p[0]][p[1]]:0);}B.push(row);}return B;}
+function shiftMap(m,n,a,b,wrap){return function(r,c){var sr=r-b,sc=c-a;if(wrap){return [((sr%m)+m)%m,((sc%n)+n)%n];}return (sr>=0&&sr<m&&sc>=0&&sc<n)?[sr,sc]:null;};}
+function scaleMap(m,n,sx,sy){return function(r,c){return [Math.min(m-1,Math.floor(r/sy)),Math.min(n-1,Math.floor(c/sx))];};}
+function mini(rows,o){
+  o=o||{};var cols=rows[0].length;
+  return '<span class="mini" style="--cols:'+cols+'">'+rows.map(function(r){return r.map(function(v){
+    var s=String(v),cls=s==='0'?'z':((o.j&&s==='1')?'on':'');
+    return '<i class="'+cls+'">'+s+'</i>';}).join('');}).join('')+'</span>';
+}
+function jBlock(k){return '<span class="mat"><em>J</em><sub>'+k+'</sub> = '+mini(exch(k),{j:1})+'</span>';}
+
+/* ---------- 이미지 → 행렬 ---------- */
+var SZ=128;
+var SAMPLES={
+  F:function(x){x.fillRect(36,20,16,88);x.fillRect(36,20,58,16);x.fillRect(36,58,42,14);},
+  arrow:function(x){
+    x.lineWidth=16;x.beginPath();x.moveTo(30,100);x.lineTo(84,46);x.stroke();
+    x.beginPath();x.moveTo(56,24);x.lineTo(104,24);x.lineTo(104,72);x.closePath();x.fill();
+  },
+  house:function(x){
+    x.beginPath();x.moveTo(22,62);x.lineTo(64,22);x.lineTo(106,62);x.closePath();x.fill();
+    x.fillRect(34,62,60,46);x.fillRect(82,28,12,22);
+    x.fillStyle='#000';x.fillRect(44,78,16,30);x.fillRect(70,74,16,16);
+  },
+  face:function(x){
+    x.lineWidth=8;x.beginPath();x.arc(64,64,46,0,Math.PI*2);x.stroke();
+    x.beginPath();x.arc(46,52,6,0,Math.PI*2);x.fill();
+    x.lineWidth=6;x.beginPath();x.moveTo(72,52);x.lineTo(90,52);x.stroke();
+    x.beginPath();x.arc(66,70,24,0.2*Math.PI,0.8*Math.PI);x.stroke();
+  }
+};
+var G={src:'F',upload:null,n:8,range:9,base:null,A:null,nums:true};
+function sampleCanvas(id){
+  var c=document.createElement('canvas');c.width=c.height=SZ;
+  var x=c.getContext('2d');x.fillStyle='#000';x.fillRect(0,0,SZ,SZ);
+  x.fillStyle='#fff';x.strokeStyle='#fff';x.lineCap='round';x.lineJoin='round';
+  SAMPLES[id](x);return c;
+}
+function uploadCanvas(img){
+  var c=document.createElement('canvas');c.width=c.height=SZ;
+  var x=c.getContext('2d');x.fillStyle='#000';x.fillRect(0,0,SZ,SZ);
+  var s=Math.min(img.naturalWidth,img.naturalHeight);
+  x.drawImage(img,(img.naturalWidth-s)/2,(img.naturalHeight-s)/2,s,s,0,0,SZ,SZ);
+  return c;
+}
+function downsample(c,n){
+  var d=c.getContext('2d').getImageData(0,0,SZ,SZ).data;
+  var lum=new Float32Array(SZ*SZ);
+  for(var i=0;i<SZ*SZ;i++){lum[i]=(0.299*d[4*i]+0.587*d[4*i+1]+0.114*d[4*i+2])/255;}
+  var M=[];
+  for(var r=0;r<n;r++){
+    var row=[],y0=Math.floor(r*SZ/n),y1=Math.max(y0+1,Math.floor((r+1)*SZ/n));
+    for(var q=0;q<n;q++){
+      var x0=Math.floor(q*SZ/n),x1=Math.max(x0+1,Math.floor((q+1)*SZ/n)),s=0,k=0;
+      for(var y=y0;y<y1;y++){for(var x=x0;x<x1;x++){s+=lum[y*SZ+x];k++;}}
+      row.push(s/k);
+    }
+    M.push(row);
+  }
+  return M;
+}
+function applyRange(){var k=G.range;G.A=G.base.map(function(r){return r.map(function(v){return Math.round(v*k);});});}
+function loadSource(){
+  var c=(G.src==='upload'&&G.upload)?uploadCanvas(G.upload):sampleCanvas(G.src==='upload'?'F':G.src);
+  G.base=downsample(c,G.n);applyRange();
+}
+
+/* ---------- 행렬 그리기 ---------- */
+function renderMatrix(host,M,o){
+  o=o||{};
+  var m=M.length,n=M[0].length,d=Math.max(m,n);
+  var cell=o.cell||(d<=8?40:d<=12?32:d<=16?26:d<=28?20:d<=40?14:d<=52?11:9);
+  if(!o.cell&&d<=12){var nf=o.nfig||2,per=(availW()-(nf-1)*50)/nf-30;cell=Math.max(14,Math.min(cell,Math.floor(per/n)-1));}
+  var max=G.range,digits=String(max).length+(o.extra||0);
+  var fs=Math.min(cell*0.5,cell/(digits*0.66));
+  var nums=G.nums&&fs>=8&&o.nums!==false;
+  var labels=o.labels!==false&&d<=32;
+  var h='<div class="mx" style="--cell:'+cell+'px;--fs:'+fs.toFixed(1)+'px;grid-template-columns:'+(labels?'auto ':'')+'repeat('+n+','+cell+'px)">';
+  if(labels){h+='<b class="ix"></b>';for(var c=0;c<n;c++){h+='<b class="ix">'+(c+1)+'</b>';}}
+  for(var r=0;r<m;r++){
+    if(labels){h+='<b class="ix">'+(r+1)+'</b>';}
+    for(var q=0;q<n;q++){
+      var v=M[r][q],g=Math.round(255*clamp(v/max,0,1));
+      h+='<i class="cell" data-r="'+r+'" data-c="'+q+'" style="background:rgb('+g+','+g+','+g+');color:'+(g>135?'#111':'#eee')+'">'+(nums?v:'')+'</i>';
+    }
+  }
+  host.innerHTML=h+'</div>';
+  return $$sel(host,'.cell');
+}
+function renderBin(host,M,o){
+  o=o||{};
+  var n=M.length,cell=o.cell||26,fs=Math.min(cell*0.5,14);
+  var h='<div class="mx" style="--cell:'+cell+'px;--fs:'+fs+'px;grid-template-columns:repeat('+n+','+cell+'px)">';
+  for(var r=0;r<n;r++){for(var c=0;c<n;c++){
+    h+='<i class="bc'+(M[r][c]?' on':'')+(o.edit?' edit':'')+'" data-r="'+r+'" data-c="'+c+'">'+M[r][c]+'</i>';
+  }}
+  host.innerHTML=h+'</div>';
+  return $$sel(host,'.bc');
+}
+function $$sel(host,s){return Array.prototype.slice.call(host.querySelectorAll(s));}
+
+/* 하이라이트 */
+var hl=[];
+function clearHl(){hl.forEach(function(e){e.classList.remove('hl-src','hl-dst','hl-row','hl-col');});hl=[];}
+function mark(els,ncols,r,c,cls){var e=els[r*ncols+c];if(e){e.classList.add(cls);hl.push(e);}}
+function wire(host,fn,leave){
+  host.addEventListener('mouseover',function(e){var c=e.target.closest('.cell,.bc');if(c){fn(+c.dataset.r,+c.dataset.c);}});
+  host.addEventListener('click',function(e){var c=e.target.closest('.cell,.bc');if(c){fn(+c.dataset.r,+c.dataset.c,true);}});
+  host.addEventListener('mouseleave',leave);
+}
+function idle(sel,msg){$(sel).innerHTML='<span class="idle">'+msg+'</span>';}
+function pos(name,cls,r,c){return '<span class="'+cls+'">'+name+'('+(r+1)+'행, '+(c+1)+'열)</span>';}
+
+/* ---------- 1단계 실습: 곱셈 실험대 ---------- */
+var S1={side:'R',X:null},L1={};
+function presets1(n){return [
+  {id:'I',nameR:'단위행렬 I',nameL:'단위행렬 I',X:identity(n)},
+  {id:'S',nameR:'오른쪽으로 1칸 이동',nameL:'위로 1칸 이동',X:supM(n)},
+  {id:'B',nameR:'왼쪽으로 1칸 이동',nameL:'아래로 1칸 이동',X:subM(n)},
+  {id:'J',nameR:'좌우 반전',nameL:'상하 반전',X:exch(n)}
+];}
+function pname(p){return S1.side==='R'?p.nameR:p.nameL;}
+function availW(){return Math.min(window.innerWidth||1160,1160)-32-34;}
+function cell1(n){
+  var base=n<=6?34:n<=8?28:n<=10?24:20;
+  var fit=Math.floor((availW()-3*30-2*50)/(3*n))-1;
+  return Math.max(14,Math.min(base,fit));
+}
+function update1(){
+  var A=G.A,n=A.length;
+  if(!S1.X||S1.X.length!==n){S1.X=identity(n);}
+  var X=S1.X,R=S1.side==='R';
+  var left=R?A:X,right=R?X:A,B=matmul(left,right);
+  var cs=cell1(n);
+  L1.n=n;L1.B=B;L1.left=left;L1.right=right;
+  var hostL=$('#l1L'),hostR=$('#l1R');
+  L1.elsL=R?renderMatrix(hostL,A,{cell:cs,labels:false}):renderBin(hostL,X,{cell:cs,edit:true});
+  L1.elsR=R?renderBin(hostR,X,{cell:cs,edit:true}):renderMatrix(hostR,A,{cell:cs,labels:false});
+  L1.xHost=R?'l1R':'l1L';
+  L1.elsB=renderMatrix($('#l1B'),B,{cell:cs,labels:false,extra:1});
+  $('#l1capL').innerHTML=R?'<b>A</b>이미지 행렬':'<b>X</b>곱하는 행렬';
+  $('#l1capR').innerHTML=R?'<b>X</b>곱하는 행렬':'<b>A</b>이미지 행렬';
+  $('#l1capB').innerHTML='<b>B</b>= '+(R?'A · X':'X · A');
+  var nm=null;
+  presets1(n).forEach(function(p){if(!nm&&eqMat(p.X,X)){nm=p;}});
+  var pre=$('#l1pre');
+  pre.innerHTML=presets1(n).map(function(p){return '<button class="btn pm" type="button" data-p="'+p.id+'" title="'+pname(p)+'" aria-label="'+pname(p)+' 행렬 불러오기">'+mini(p.X,{j:1})+'</button>';}).join('');
+  var rd=$('#l1read');
+  L1.idleMsg=nm?('지금 X는 <b>'+pname(nm)+'</b> 행렬입니다. '+(nm.id==='I'?'A에 곱해도 이미지가 그대로입니다.':'곱한 결과 이미지가 '+pname(nm)+'합니다.')):'지금 X는 직접 만든 행렬입니다. B의 칸에 마우스를 올려 곱셈에 쓰인 행과 열을 확인해 보세요.';
+  clearHl();idle('#l1read',L1.idleMsg);
+}
+function hover1(r,c){
+  clearHl();var n=L1.n;
+  mark(L1.elsB,n,r,c,'hl-dst');
+  for(var k=0;k<n;k++){mark(L1.elsL,n,r,k,'hl-row');mark(L1.elsR,n,k,c,'hl-col');}
+  $('#l1read').innerHTML=pos('B','tB',r,c)+' = <span class="tA">왼쪽 행렬의 '+(r+1)+'행</span>과 <span class="tB">오른쪽 행렬의 '+(c+1)+'열</span>을 곱해 더한 값 = '+L1.B[r][c];
+}
+
+/* ---------- 2단계 실습: 전치 ---------- */
+var S2={crop:false},L2={};
+function update2(){
+  var A=G.A;if(S2.crop){A=A.slice(0,Math.max(2,Math.round(A.length*0.6)));}
+  var m=A.length,n=A[0].length,T=transposeM(A);
+  L2={A:A,T:T,m:m,n:n};
+  L2.elsA=renderMatrix($('#l2A'),A);
+  L2.elsT=renderMatrix($('#l2T'),T);
+  $('#l2capA').innerHTML='<b>A</b>'+m+' × '+n;
+  $('#l2capT').innerHTML='<b>Aᵀ</b>'+n+' × '+m;
+  $('#l2formula').innerHTML='<div class="eq"><em>B</em> = <em>A</em><sup>T</sup></div><p>A의 i행 j열 성분이 Aᵀ의 j행 i열 성분이 됩니다. 크기는 '+m+'×'+n+'에서 '+n+'×'+m+'로 바뀝니다. '+(m===n?'정사각형이라 크기는 그대로이고, 주대각선을 기준으로 접힌 모양이 됩니다.':'정사각형이 아니면 가로와 세로의 길이가 서로 바뀝니다.')+'</p>';
+  clearHl();idle('#l2read','칸에 마우스를 올리면 A와 Aᵀ에서 같은 화소가 어디로 가는지 표시됩니다.');
+}
+function hover2(kind,r,c){
+  clearHl();var p=kind==='A'?[r,c]:[c,r];
+  mark(L2.elsA,L2.n,p[0],p[1],'hl-src');
+  mark(L2.elsT,L2.m,p[1],p[0],'hl-dst');
+  $('#l2read').innerHTML=pos('A','tA',p[0],p[1])+' = '+L2.A[p[0]][p[1]]+' → '+pos('Aᵀ','tB',p[1],p[0]);
+}
+
+/* ---------- 3단계 실습: 평행이동 ---------- */
+var S3={tx:2,ty:1,wrap:false},L3={};
+function update3(){
+  var A=G.A,m=A.length,n=A[0].length;
+  var sx=$('#t3x'),sy=$('#t3y');sx.min=-n;sx.max=n;sy.min=-m;sy.max=m;
+  S3.tx=clamp(S3.tx,-n,n);S3.ty=clamp(S3.ty,-m,m);sx.value=S3.tx;sy.value=S3.ty;
+  $('#t3xv').textContent=sgn(S3.tx);$('#t3yv').textContent=sgn(S3.ty);
+  var map=shiftMap(m,n,S3.tx,S3.ty,S3.wrap),B=build(m,n,A,map);
+  L3={A:A,B:B,map:map,m:m,n:n};
+  L3.elsA=renderMatrix($('#l3A'),A);L3.elsB=renderMatrix($('#l3B'),B);
+  $('#l3capA').innerHTML='<b>A</b>'+m+' × '+n;$('#l3capB').innerHTML='<b>B</b>이동한 이미지';
+  $('#l3formula').innerHTML='<div class="eq">'+mini([['x′'],['y′']])+'<span>=</span>'+mini([['x'],['y']])+'<span>+</span>'+mini([[S3.tx],[S3.ty]])+'</div>'+
+    '<p class="note">'+(S3.wrap?'밀려난 칸은 반대쪽에서 다시 나타납니다.':'밀려난 칸은 사라지고, 새로 생긴 빈칸은 0으로 채워집니다.')+'</p>';
+  clearHl();idle('#l3read','A의 칸에 마우스를 올리면 그 점이 이동한 위치가 표시됩니다.');
+}
+function pt(name,cls,r,c){return '<span class="'+cls+'">'+name+'(x='+(c+1)+', y='+(r+1)+')</span>';}
+function hover3(kind,r,c){
+  clearHl();var m=L3.m,n=L3.n;
+  if(kind==='A'){
+    mark(L3.elsA,n,r,c,'hl-src');
+    var r2=r+S3.ty,c2=c+S3.tx;
+    if(S3.wrap){r2=((r2%m)+m)%m;c2=((c2%n)+n)%n;}
+    var inside=r2>=0&&r2<m&&c2>=0&&c2<n;
+    var t=pt('A의 점','tA',r,c)+' = '+L3.A[r][c]+' → ';
+    if(inside){mark(L3.elsB,n,r2,c2,'hl-dst');t+=pt('B의 점 (x′, y′)','tB',r2,c2).replace('(x=','(x′=').replace(', y=',', y′=');}
+    else{t+='<span class="idle">이미지 밖으로 밀려나 사라집니다.</span>';}
+    $('#l3read').innerHTML=t;
+  }else{
+    mark(L3.elsB,n,r,c,'hl-dst');var p=L3.map(r,c);
+    if(p){mark(L3.elsA,n,p[0],p[1],'hl-src');$('#l3read').innerHTML=pt('B의 점','tB',r,c)+' = '+pt('A의 점','tA',p[0],p[1])+' = '+L3.B[r][c];}
+    else{$('#l3read').innerHTML=pt('B의 점','tB',r,c)+' = 0 <span class="idle">A에 대응하는 점이 없어 0으로 채워진 칸입니다.</span>';}
+  }
+}
+
+/* ---------- 4단계 실습: 확대·축소 ---------- */
+var CAP=64,FACTORS=[0.25,0.5,1,1.5,2,3,4],FLAB={0.25:'×0.25 (¼배)',0.5:'×0.5 (½배)',1:'×1 (그대로)',1.5:'×1.5',2:'×2',3:'×3',4:'×4'};
+var S4={sx:2,sy:2,lock:true},L4={};
+function update4(){
+  var A=G.A,m=A.length,n=A[0].length,sx=S4.sx,sy=S4.sy;
+  var om=Math.max(1,Math.round(m*sy)),on=Math.max(1,Math.round(n*sx));
+  var clip=om>CAP||on>CAP;om=Math.min(om,CAP);on=Math.min(on,CAP);
+  var map=scaleMap(m,n,sx,sy),B=build(om,on,A,map);
+  L4={A:A,B:B,map:map,m:m,n:n,om:om,on:on};
+  L4.elsA=renderMatrix($('#l4A'),A);L4.elsB=renderMatrix($('#l4B'),B);
+  $('#l4capA').innerHTML='<b>A</b>'+m+' × '+n;$('#l4capB').innerHTML='<b>B</b>'+om+' × '+on;
+  $('#l4formula').innerHTML='<p>(x′, y′) = ('+sx+'x, '+sy+'y). 크기 '+m+'×'+n+'인 A는 '+om+'×'+on+'인 B가 됩니다.</p>'+
+    '<div class="eq">'+mini([['x′'],['y′']])+'<span>=</span>'+mini([[sx,0],[0,sy]])+mini([['x'],['y']])+'</div>'+
+    '<p class="note">'+(clip?' 한 변이 '+CAP+'칸을 넘는 부분은 잘렸습니다.':'')+'</p>';
+  clearHl();idle('#l4read','칸에 마우스를 올리면 A와 B에서 서로 대응하는 칸이 표시됩니다.');
+}
+function hover4(kind,r,c){
+  clearHl();var A=L4.A,B=L4.B,nA=L4.n,nB=L4.on,t;
+  if(kind==='B'){
+    var p=L4.map(r,c);mark(L4.elsB,nB,r,c,'hl-dst');mark(L4.elsA,nA,p[0],p[1],'hl-src');
+    t=pos('B','tB',r,c)+' = '+pos('A','tA',p[0],p[1])+' = '+B[r][c];
+  }else{
+    mark(L4.elsA,nA,r,c,'hl-src');var hits=[];
+    for(var i=0;i<L4.om;i++){for(var j=0;j<nB;j++){var q=L4.map(i,j);if(q[0]===r&&q[1]===c){hits.push([i,j]);}}}
+    hits.forEach(function(h){mark(L4.elsB,nB,h[0],h[1],'hl-dst');});
+    t=pos('A','tA',r,c)+' = '+A[r][c]+' → ';
+    t+=hits.length?(hits.slice(0,4).map(function(h){return pos('B','tB',h[0],h[1]);}).join(', ')+(hits.length>4?' 외 '+(hits.length-4)+'칸':'')):'<span class="idle">축소하면서 건너뛴 칸이라 B에 나타나지 않습니다.</span>';
+  }
+  $('#l4read').innerHTML=t;
+}
+
+/* ---------- 퀴즈 엔진 ---------- */
+function parseNum(s){
+  s=String(s).trim().replace(/−/g,'-').replace(/,/g,'.');
+  if(!s){return NaN;}
+  var m=s.match(/^(-?\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)$/);
+  if(m){return +m[1]/+m[2];}
+  return /^-?(\d+\.?\d*|\.\d+)$/.test(s)?+s:NaN;
+}
+function checkAnswer(sp,data){
+  var i,j;
+  if(sp.type==='mc'){if(data<0){return {incomplete:true};}return {ok:data===sp.answer};}
+  if(sp.type==='num'){
+    for(i=0;i<data.length;i++){if(isNaN(data[i])){return {incomplete:true};}}
+    var bad=data.map(function(v,k){return Math.abs(v-sp.fields[k].answer)>1e-9;});
+    return {ok:!bad.some(Boolean),bad:bad};
+  }
+  if(sp.type==='grid'){
+    var bd=[],ok=true;
+    for(i=0;i<sp.rows;i++){var row=[];for(j=0;j<sp.cols;j++){
+      if(isNaN(data[i][j])){return {incomplete:true};}
+      var b=Math.abs(data[i][j]-sp.answer[i][j])>1e-9;if(b){ok=false;}row.push(b);}bd.push(row);}
+    return {ok:ok,bad:bd};
+  }
+  if(sp.type==='construct'){if(!data.side){return {incomplete:true};}return {ok:!!sp.check(data.side,data.X)};}
+  return {incomplete:true};
+}
+var uid=0;
+function mcBuild(host,sp){
+  var name='mc'+(++uid),wrap=document.createElement('div');wrap.className='seg col';
+  sp.options.forEach(function(o,i){
+    var l=document.createElement('label');
+    l.innerHTML='<input type="radio" name="'+name+'" value="'+i+'"><span>'+o+'</span>';
+    wrap.appendChild(l);
+  });
+  host.appendChild(wrap);
+  return {read:function(){var c=wrap.querySelector('input:checked');return c?+c.value:-1;},
+    lock:function(){$$sel(wrap,'input').forEach(function(x){x.disabled=true;});},mark:function(){}};
+}
+function numBuild(host,sp){
+  var inputs=[];
+  sp.fields.forEach(function(f){
+    var l=document.createElement('label');l.className='nf';
+    l.innerHTML='<span>'+f.label+'</span>';
+    var inp=document.createElement('input');inp.type='text';inp.className='ni';inp.setAttribute('inputmode','text');inp.autocomplete='off';
+    l.appendChild(inp);host.appendChild(l);inputs.push(inp);
+  });
+  return {read:function(){return inputs.map(function(x){return parseNum(x.value);});},
+    lock:function(){inputs.forEach(function(x){x.disabled=true;});},
+    mark:function(bad){inputs.forEach(function(x,i){x.classList.toggle('bad',!!(bad&&bad[i]));});}};
+}
+function gridBuild(host,rows,cols,toggle){
+  var wrap=document.createElement('div');wrap.className='mxwrap ig-wrap';
+  var g=document.createElement('div');g.className='ig';g.style.gridTemplateColumns='repeat('+cols+',46px)';
+  var cells=[];
+  for(var r=0;r<rows;r++){var row=[];for(var c=0;c<cols;c++){
+    var el;
+    if(toggle){
+      el=document.createElement('button');el.type='button';el.className='tg';el.dataset.v='0';el.textContent='0';
+      el.addEventListener('click',function(){var v=this.dataset.v==='1'?'0':'1';this.dataset.v=v;this.textContent=v;});
+    }else{
+      el=document.createElement('input');el.type='text';el.autocomplete='off';el.setAttribute('inputmode','text');el.setAttribute('aria-label',(r+1)+'행 '+(c+1)+'열');
+    }
+    g.appendChild(el);row.push(el);
+  }cells.push(row);}
+  wrap.appendChild(g);host.appendChild(wrap);
+  return {read:function(){return cells.map(function(row){return row.map(function(el){return toggle?+el.dataset.v:parseNum(el.value);});});},
+    lock:function(){cells.forEach(function(row){row.forEach(function(el){el.disabled=true;});});},
+    mark:function(bad){cells.forEach(function(row,i){row.forEach(function(el,j){el.classList.toggle('bad',!!(bad&&bad[i][j]));});});}};
+}
+function constructBuild(host,sp){
+  var name='sd'+(++uid),sd=document.createElement('div');sd.className='seg ctl-side';
+  sd.innerHTML='<label><input type="radio" name="'+name+'" value="R"><span><em>A</em> · <em>X</em> (오른쪽에 곱하기)</span></label><label><input type="radio" name="'+name+'" value="L"><span><em>X</em> · <em>A</em> (왼쪽에 곱하기)</span></label>';
+  host.appendChild(sd);
+  var gb=gridBuild(host,sp.n,sp.n,true);
+  return {read:function(){var c=sd.querySelector('input:checked');return {side:c?c.value:null,X:gb.read()};},
+    lock:function(){$$sel(sd,'input').forEach(function(x){x.disabled=true;});gb.lock();},mark:function(){}};
+}
+function buildWidget(host,sp){
+  if(sp.type==='mc'){return mcBuild(host,sp);}
+  if(sp.type==='num'){return numBuild(host,sp);}
+  if(sp.type==='grid'){return gridBuild(host,sp.rows,sp.cols,false);}
+  return constructBuild(host,sp);
+}
+
+var QS={},Q=[];
+function mat(M,o){return mini(M,o);}
+function label(s){return '<span>'+s+'</span>';}
+
+/* ----- 1단계 문제 ----- */
+Q.push({id:'1-1',stage:1,gen:function(){
+  var kinds=[{t:'좌우 반전',a:'A · J',e:'J가 <b>오른쪽</b>에 곱해지면 열의 순서가 거꾸로 되어 좌우 반전이 됩니다.'},
+    {t:'상하 반전',a:'J · A',e:'J가 <b>왼쪽</b>에 곱해지면 행의 순서가 거꾸로 되어 상하 반전이 됩니다.'},
+    {t:'180° 회전',a:'J · A · J',e:'행과 열을 모두 거꾸로 하므로 양쪽에 J를 곱합니다. 상하 반전과 좌우 반전을 함께 한 것과 같습니다.'}];
+  var k=pick(kinds),opts=shuffle(['A · J','J · A','J · A · J','A · I']);
+  return {body:'<p>이미지 행렬 <em>A</em>를 <b>'+k.t+'</b>하려면 어떤 식을 계산해야 할까요?</p><p class="muted">J는 반대 대각선 성분이 1이고 나머지는 0인 행렬, I는 단위행렬입니다.</p>',
+    widget:{type:'mc',options:opts.map(function(x){return '<span class="mono">'+x+'</span>';}),answer:opts.indexOf(k.a)},
+    hint:'오른쪽에 곱하면 열(좌우)의 순서가, 왼쪽에 곱하면 행(상하)의 순서가 바뀝니다. 단위행렬 I를 곱하면 그대로입니다.',
+    explain:k.e};
+}});
+Q.push({id:'1-2',stage:1,gen:function(){
+  var n=4,vals=shuffle([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]),A=[];
+  for(var i=0;i<n;i++){A.push(vals.slice(i*n,i*n+n));}
+  var kinds=[{t:'오른쪽으로 한 칸 이동',side:'R',X:supM(n)},{t:'왼쪽으로 한 칸 이동',side:'R',X:subM(n)},
+    {t:'아래쪽으로 한 칸 이동',side:'L',X:subM(n)},{t:'위쪽으로 한 칸 이동',side:'L',X:supM(n)}];
+  var k=pick(kinds),target=k.side==='R'?matmul(A,k.X):matmul(k.X,A);
+  return {body:'<p>4×4 행렬 <em>A</em>를 <b>'+k.t+'</b>하면 <em>B</em>가 됩니다. 밀려난 줄은 사라지고 새로 생긴 줄은 0입니다. <em>B</em>를 만들 수 있는 <em>X</em>를 직접 만드세요. 곱하는 쪽을 고르고, X의 칸을 눌러 0과 1을 정합니다.</p>'+
+      '<div class="eq"><span><em>A</em> =</span>'+mat(A)+'<span><em>B</em> =</span>'+mat(target)+'</div>',
+    widget:{type:'construct',n:n,check:function(side,X){var P=side==='R'?matmul(A,X):matmul(X,A);return eqMat(P,target);},sol:{side:k.side,X:k.X}},
+    hint:'B의 첫 줄이 A의 어느 줄에서 왔는지 먼저 살펴보세요. 위아래로 옮겼다면 행이 바뀌므로 왼쪽에, 좌우로 옮겼다면 열이 바뀌므로 오른쪽에 곱합니다.',
+    explain:'정답 예시는 '+(k.side==='R'?'<em>A</em> · <em>X</em>':'<em>X</em> · <em>A</em>')+'이고, <em>X</em> = '+mat(k.X,{j:1})+'입니다. 1이 대각선 바로 '+(k.X[0][1]===1?'위':'아래')+'에 놓이면 한 칸 이동이 됩니다.'};
+}});
+Q.push({id:'1-3',stage:1,gen:function(){
+  var A=randMat(3,3,1,9),k=pick(['lr','ud']);
+  var B=k==='lr'?matmul(A,exch(3)):matmul(exch(3),A);
+  var f=k==='lr'?'<em>B</em> = <em>A</em> · <em>J</em>':'<em>B</em> = <em>J</em> · <em>A</em>';
+  return {body:'<p>다음 곱셈의 결과 <em>B</em>를 채우세요.</p><div class="eq">'+f+'<span><em>A</em> =</span>'+mat(A)+'<span><em>J</em> =</span>'+mat(exch(3),{j:1})+'</div>',
+    widget:{type:'grid',rows:3,cols:3,answer:B},
+    hint:k==='lr'?'A · J는 A의 각 행을 오른쪽에서 왼쪽으로 읽은 것과 같습니다.':'J · A는 A의 행 순서를 위아래로 뒤집은 것과 같습니다.',
+    explain:k==='lr'?'오른쪽에 J를 곱하면 각 행의 숫자 순서가 거꾸로 됩니다.':'왼쪽에 J를 곱하면 행의 순서가 거꾸로 됩니다. 첫 행이 맨 아래로 갑니다.'};
+}});
+
+/* ----- 2단계 문제 ----- */
+Q.push({id:'2-1',stage:2,gen:function(){
+  var d=pick([[2,3],[3,2],[2,4],[3,4]]),A=randMat(d[0],d[1],1,9),T=transposeM(A);
+  return {body:'<p><em>A</em>는 '+d[0]+'×'+d[1]+' 행렬입니다. 전치행렬 <em>A</em><sup>T</sup>를 채우세요. 크기는 '+d[1]+'×'+d[0]+'입니다.</p><div class="eq"><span><em>A</em> =</span>'+mat(A)+'</div>',
+    widget:{type:'grid',rows:d[1],cols:d[0],answer:T},
+    hint:'A의 첫 번째 행이 Aᵀ의 첫 번째 열이 됩니다.',
+    explain:'A의 i행 j열 성분을 Aᵀ의 j행 i열에 적습니다. A의 행을 하나씩 세워서 Aᵀ의 열로 만드는 방법도 있습니다.'};
+}});
+Q.push({id:'2-2',stage:2,gen:function(){
+  var m=ri(2,5),n=ri(2,5);while(n===m){n=ri(2,5);}
+  return {body:'<p><em>A</em>가 '+m+'×'+n+' 행렬일 때, 전치행렬 <em>A</em><sup>T</sup>의 행 수와 열 수를 구하세요.</p>',
+    widget:{type:'num',fields:[{label:'행 수',answer:n},{label:'열 수',answer:m}]},
+    hint:'전치하면 행과 열이 서로 바뀝니다.',
+    explain:'A의 행이 Aᵀ의 열이 되므로 Aᵀ는 '+n+'×'+m+' 행렬입니다.'};
+}});
+Q.push({id:'2-3',stage:2,gen:function(){
+  var m=ri(3,5),n=ri(3,5),i=ri(1,m),j=ri(1,n);while(i===j){j=ri(1,n);}
+  return {body:'<p><em>A</em>가 '+m+'×'+n+' 행렬일 때, <em>A</em>의 <b>'+i+'행 '+j+'열</b> 성분은 전치행렬 <em>A</em><sup>T</sup>의 몇 행 몇 열에 놓일까요?</p>',
+    widget:{type:'num',fields:[{label:'Aᵀ의 행',answer:j},{label:'Aᵀ의 열',answer:i}]},
+    hint:'A의 i행 j열 성분은 Aᵀ에서 행과 열 번호가 서로 바뀝니다.',
+    explain:'A의 ('+i+'행, '+j+'열) 성분은 Aᵀ의 ('+j+'행, '+i+'열)로 갑니다.'};
+}});
+Q.push({id:'2-4',stage:2,gen:function(){
+  var all=['<em>A</em>','<em>A</em><sup>T</sup>','<em>J</em> · <em>A</em>','단위행렬 <em>I</em>'];
+  var opts=shuffle(all);
+  return {body:'<p>도전 문제입니다. 행렬 <em>A</em>를 전치한 뒤 한 번 더 전치하면 결과는 무엇과 같을까요?</p><div class="eq">(<em>A</em><sup>T</sup>)<sup>T</sup> = ?</div>',
+    widget:{type:'mc',options:opts,answer:opts.indexOf(all[0])},
+    hint:'전치는 행과 열을 맞바꾸는 일입니다. 두 번 맞바꾸면 어떻게 될까요?',
+    explain:'행과 열을 두 번 맞바꾸면 원래 자리로 돌아옵니다. 그래서 (Aᵀ)ᵀ = A입니다.'};
+}});
+
+/* ----- 3단계 문제 ----- */
+function nz(){var v=0;while(v===0){v=ri(-3,3);}return v;}
+Q.push({id:'3-1',stage:3,gen:function(){
+  var x=ri(1,5),y=ri(1,5),a=nz(),b=nz();
+  return {body:'<p>점 (x, y) = ('+x+', '+y+')를 x축 방향으로 '+a+', y축 방향으로 '+b+'만큼 평행이동했습니다. 이동한 점 (x′, y′)을 구하세요.</p><div class="eq">'+mini([['x′'],['y′']])+'<span>=</span>'+mini([[x],[y]])+'<span>+</span>'+mini([[a],[b]])+'</div><p class="muted">x는 열 번호, y는 행 번호입니다. 양수는 오른쪽·아래쪽, 음수는 왼쪽·위쪽으로 이동합니다.</p>',
+    widget:{type:'num',fields:[{label:'x′ =',answer:x+a},{label:'y′ =',answer:y+b}]},
+    hint:'같은 자리의 성분끼리 더합니다. 위 성분은 x + a, 아래 성분은 y + b입니다.',
+    explain:mat([[x],[y]])+' + '+mat([[a],[b]])+' = '+mat([[x+a],[y+b]])+', 즉 (x′, y′) = ('+(x+a)+', '+(y+b)+')'};
+}});
+Q.push({id:'3-2',stage:3,gen:function(){
+  var A=randMat(4,4,1,9),ab=pick([[1,1],[1,-1],[-1,1],[2,0],[0,-2],[-1,-1],[0,1]]);
+  var B=build(4,4,A,shiftMap(4,4,ab[0],ab[1],false));
+  return {body:'<p>4×4 이미지 <em>A</em>를 오른쪽으로 <b>'+ab[0]+'</b>칸, 아래쪽으로 <b>'+ab[1]+'</b>칸 이동하면 <em>B</em>가 됩니다(음수는 반대 방향). 밀려난 칸은 사라지고 빈 칸은 0으로 채웁니다.</p><div class="eq"><span><em>A</em> =</span>'+mat(A)+'</div>',
+    widget:{type:'grid',rows:4,cols:4,answer:B},
+    hint:'먼저 A의 각 값이 B의 어느 칸으로 가는지, (행 + '+ab[1]+', 열 + '+ab[0]+')로 계산해 보세요.',
+    explain:'A의 i행 j열 값은 B의 (i + '+ab[1]+')행 (j + '+ab[0]+')열로 옮겨집니다. 범위를 벗어나면 사라지고, 비는 칸은 0입니다.'};
+}});
+Q.push({id:'3-3',stage:3,gen:function(){
+  var x=ri(1,5),y=ri(1,5),a=nz(),b=nz();
+  return {body:'<p>점 ('+x+', '+y+')를 평행이동했더니 ('+(x+a)+', '+(y+b)+')가 되었습니다. 다음 식에서 a, b의 값을 구하세요.</p><div class="eq">'+mini([[x+a],[y+b]])+'<span>=</span>'+mini([[x],[y]])+'<span>+</span>'+mini([['a'],['b']])+'</div>',
+    widget:{type:'num',fields:[{label:'a =',answer:a},{label:'b =',answer:b}]},
+    hint:'나중 좌표에서 처음 좌표를 빼 보세요.',
+    explain:'a = '+(x+a)+' − '+x+' = '+a+', b = '+(y+b)+' − '+y+' = '+b};
+}});
+
+/* ----- 4단계 문제 ----- */
+Q.push({id:'4-1',stage:4,gen:function(){
+  var m=pick([2,3,4]),n=pick([2,3,4,5]),pr=pick([[2,3],[3,2],[2,1],[1,3]]),sx=pr[0],sy=pr[1];
+  return {body:'<p>행 수가 '+m+'이고 열 수가 '+n+'인 이미지를 <b>가로로 '+sx+'배, 세로로 '+sy+'배</b> 확대했습니다. 결과 이미지의 행 수와 열 수를 구하세요.</p>',
+    widget:{type:'num',fields:[{label:'행 수',answer:m*sy},{label:'열 수',answer:n*sx}]},
+    hint:'가로로 몇 배인지는 열 수에, 세로로 몇 배인지는 행 수에 적용됩니다. 행 수는 세로 방향의 길이입니다.',
+    explain:'행 수 = '+m+' × '+sy+' = '+(m*sy)+', 열 수 = '+n+' × '+sx+' = '+(n*sx)};
+}});
+Q.push({id:'4-2',stage:4,gen:function(){
+  var pr=pick([[2,3],[3,2],[0.5,2],[2,0.5],[1.5,3],[3,1],[2,1]]),sx=pr[0],sy=pr[1];
+  var S=[[sx,0],[0,sy]];
+  return {body:'<p>점 (x, y)를 가로로 '+sx+'배, 세로로 '+sy+'배 확대하면 (x′, y′) = ('+sx+'x, '+sy+'y)가 됩니다. 이를 행렬의 곱으로 나타낼 때, 빈칸의 2×2 행렬을 채우세요. 소수나 분수(1/2)로 입력할 수 있습니다.</p><div class="eq">'+mini([['x′'],['y′']])+'<span>=</span><span>□</span>'+mini([['x'],['y']])+'</div>',
+    widget:{type:'grid',rows:2,cols:2,answer:S},
+    hint:'x′ = '+sx+'·x + 0·y, y′ = 0·x + '+sy+'·y가 되도록 칸을 채웁니다. 몇 배인지가 대각선에 놓입니다.',
+    explain:mat(S)+' · '+mat([['x'],['y']])+' = '+mat([[sx+'x'],[sy+'y']])+'입니다. 대각선에 가로·세로로 몇 배인지가 놓이고 나머지는 0입니다.'};
+}});
+
+/* ----- 종합 문제: 평행이동 + 확대·축소 ----- */
+Q.push({id:'4-3',stage:4,box:'quiz4b',gen:function(){
+  var x=ri(1,4),y=ri(1,4),sx=pick([2,3]),sy=pick([1,2,3]),a=nz(),b=nz();
+  return {body:'<p>점 (x, y) = ('+x+', '+y+')를 먼저 <b>가로로 '+sx+'배, 세로로 '+sy+'배 확대</b>한 뒤, 이어서 <b>x축 방향으로 '+a+', y축 방향으로 '+b+'만큼 평행이동</b>했습니다. 최종 위치 (x′, y′)를 구하세요.</p>',
+    widget:{type:'num',fields:[{label:'x′ =',answer:sx*x+a},{label:'y′ =',answer:sy*y+b}]},
+    hint:'먼저 확대한 위치 ('+sx+'x, '+sy+'y)를 구하고, 그 결과에 이동한 양을 더합니다.',
+    explain:'확대: ('+(sx*x)+', '+(sy*y)+') → 이동: ('+(sx*x)+' + ('+a+'), '+(sy*y)+' + ('+b+')) = ('+(sx*x+a)+', '+(sy*y+b)+')'};
+}});
+Q.push({id:'4-4',stage:4,box:'quiz4b',gen:function(){
+  var x=ri(1,4),y=ri(1,4),sx=pick([2,3]),sy=pick([1,2,3]),a=nz(),b=nz();
+  return {body:'<p>점 (x, y) = ('+x+', '+y+')를 먼저 <b>x축 방향으로 '+a+', y축 방향으로 '+b+'만큼 평행이동</b>한 뒤, 이어서 <b>가로로 '+sx+'배, 세로로 '+sy+'배 확대</b>했습니다. 최종 위치 (x′, y′)를 구하세요.</p>',
+    widget:{type:'num',fields:[{label:'x′ =',answer:sx*(x+a)},{label:'y′ =',answer:sy*(y+b)}]},
+    hint:'이번에는 이동이 먼저입니다. 이동한 위치 (x + a, y + b)에 '+sx+'배, '+sy+'배를 합니다.',
+    explain:'이동: ('+(x+a)+', '+(y+b)+') → 확대: ('+sx+'×'+(x+a)+', '+sy+'×'+(y+b)+') = ('+(sx*(x+a))+', '+(sy*(y+b))+'). 같은 숫자로 확대를 먼저 했다면 ('+(sx*x+a)+', '+(sy*y+b)+')가 되어 순서에 따라 결과가 달라집니다.'};
+}});
+Q.push({id:'4-5',stage:4,box:'quiz4b',gen:function(){
+  var sx=pick([2,3]),sy=pick([2,3]),x=ri(1,4),y=ri(1,4),a=nz(),b=nz();
+  var S=[[sx,0],[0,sy]];
+  return {body:'<p>점 (x, y) = ('+x+', '+y+')를 <b>가로로 '+sx+'배, 세로로 '+sy+'배 확대한 뒤</b>, 이어서 <b>x축 방향으로 '+a+', y축 방향으로 '+b+'만큼 이동</b>합니다. 이 과정은 다음 계산으로 나타낼 수 있습니다. 계산해서 x′, y′를 구하세요.</p><div class="eq">'+mini([['x′'],['y′']])+'<span>=</span>'+mat(S)+mat([[x],[y]])+'<span>+</span>'+mat([[a],[b]])+'</div>',
+    widget:{type:'num',fields:[{label:'x′ =',answer:sx*x+a},{label:'y′ =',answer:sy*y+b}]},
+    hint:'곱셈을 먼저 합니다. '+mat(S)+mat([[x],[y]])+' = ('+(sx*x)+', '+(sy*y)+')를 구한 다음 덧셈을 합니다.',
+    explain:mat(S)+mat([[x],[y]])+' = '+mat([[sx*x],[sy*y]])+'이고, 여기에 '+mat([[a],[b]])+'를 더하면 '+mat([[sx*x+a],[sy*y+b]])+'입니다.'};
+}});
+Q.push({id:'4-6',stage:4,box:'quiz4b',gen:function(){
+  var sx=pick([2,3]),sy=pick([2,3]),x=ri(1,4),y=ri(1,4),a=nz(),b=nz();
+  var S=[[sx,0],[0,sy]];
+  return {body:'<p>점 (x, y) = ('+x+', '+y+')를 <b>x축 방향으로 '+a+', y축 방향으로 '+b+'만큼 이동한 뒤</b>, 이어서 <b>가로로 '+sx+'배, 세로로 '+sy+'배 확대</b>합니다. 이 과정은 다음 계산으로 나타낼 수 있습니다. 계산해서 x′, y′를 구하세요.</p><div class="eq">'+mini([['x′'],['y′']])+'<span>=</span>'+mat(S)+'<span>(</span>'+mat([[x],[y]])+'<span>+</span>'+mat([[a],[b]])+'<span>)</span></div>',
+    widget:{type:'num',fields:[{label:'x′ =',answer:sx*(x+a)},{label:'y′ =',answer:sy*(y+b)}]},
+    hint:'괄호 안의 덧셈을 먼저 합니다. 더한 결과 ('+(x+a)+', '+(y+b)+')에 앞의 2×2 행렬을 곱합니다.',
+    explain:mat([[x],[y]])+' + '+mat([[a],[b]])+' = '+mat([[x+a],[y+b]])+'이고, 여기에 '+mat(S)+'를 곱하면 '+mat([[sx*(x+a)],[sy*(y+b)]])+'입니다. 확대를 먼저 했다면 ('+(sx*x+a)+', '+(sy*y+b)+')가 되어 순서에 따라 결과가 달라집니다.'};
+}});
+
+var STAGES={1:'행렬 곱셈으로 이동·방향 변환',2:'전치행렬로 방향 변환',3:'평행이동',4:'확대·축소'};
+function mount(def,host){
+  var st=QS[def.id]||(QS[def.id]={solved:false,attempts:0});
+  var card=document.createElement('article');host.appendChild(card);
+  function render(){
+    var inst=def.gen(),sp=inst.widget,wrong=0;
+    card.className='q'+(st.solved?' solved':'');
+    card.innerHTML='<div class="qh"><span class="qn">문제 '+def.id+'</span><span class="badge">'+(st.solved?'정답':'풀이 전')+'</span></div><div class="qbody"></div><div class="qw"></div>'+
+      '<div class="qa"><button class="btn primary chk" type="button">정답 확인</button><button class="btn hnt" type="button">힌트</button><button class="btn nw" type="button">새 문제</button></div><div class="qhint" hidden></div><div class="qfb" role="status"></div>';
+    var body=card.querySelector('.qbody'),wd=card.querySelector('.qw'),fb=card.querySelector('.qfb'),hint=card.querySelector('.qhint');
+    body.innerHTML=inst.body;hint.innerHTML='힌트: '+inst.hint;
+    var api=buildWidget(wd,sp);
+    function say(cls,res,extra){fb.className='qfb '+cls;fb.innerHTML='<span class="res">'+res+'</span>'+(extra||'');}
+    card.querySelector('.chk').addEventListener('click',function(){
+      var data=api.read(),res=checkAnswer(sp,data);
+      if(res.incomplete){say('no','답을 모두 입력해 주세요.'+(sp.type==='construct'?' 곱하는 쪽도 골라야 합니다.':''));return;}
+      if(!st.solved){st.attempts++;}
+      if(res.ok){
+        st.solved=true;api.mark&&api.mark(null);api.lock();
+        card.classList.add('solved');card.querySelector('.badge').textContent='정답';
+        say('ok','정답입니다!','<div class="ex">'+inst.explain+'</div>');
+        refresh();
+      }else{
+        wrong++;api.mark&&api.mark(res.bad);
+        say('no','아직 아니에요.',' 힌트를 보거나 다시 계산해 보세요.'+(wrong>=3?' <button class="btn show" type="button">풀이 보기</button>':''));
+        var sb=fb.querySelector('.show');
+        if(sb){sb.addEventListener('click',function(){fb.insertAdjacentHTML('beforeend','<div class="ex">'+inst.explain+'</div>');sb.remove();});}
+        refresh();
+      }
+    });
+    card.querySelector('.hnt').addEventListener('click',function(){hint.hidden=!hint.hidden;});
+    card.querySelector('.nw').addEventListener('click',render);
+  }
+  render();
+}
+function stat(k){
+  var qs=Q.filter(function(q){return q.stage===k;}),s=0,t=0,a=0;
+  qs.forEach(function(q){var st=QS[q.id];if(st){if(st.solved){s++;}if(st.attempts>0){t++;}a+=st.attempts;}});
+  return {n:qs.length,solved:s,tried:t,attempts:a};
+}
+function refresh(){
+  var rows='',T={n:0,solved:0,tried:0,attempts:0};
+  [1,2,3,4].forEach(function(k){
+    var s=stat(k);T.n+=s.n;T.solved+=s.solved;T.tried+=s.tried;T.attempts+=s.attempts;
+    var b=$('#step'+k);b.querySelector('.sp').textContent='정답 '+s.solved+' / '+s.n;
+    b.classList.toggle('done',s.solved===s.n);
+    rows+='<tr><td>'+k+'단계 '+STAGES[k]+'</td><td class="n">'+s.tried+' / '+s.n+'</td><td class="n">'+s.solved+' / '+s.n+'</td><td class="n">'+s.attempts+'회</td></tr>';
+  });
+  rows+='<tr><td><b>전체</b></td><td class="n"><b>'+T.tried+' / '+T.n+'</b></td><td class="n"><b>'+T.solved+' / '+T.n+'</b></td><td class="n"><b>'+T.attempts+'회</b></td></tr>';
+  $('#sumbody').innerHTML=rows;
+}
+
+/* ---------- 결과 이미지 ---------- */
+var FONT='"IBM Plex Sans KR","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif';
+function rr(x,X,y,w,h,r){
+  x.beginPath();x.moveTo(X+r,y);x.lineTo(X+w-r,y);x.quadraticCurveTo(X+w,y,X+w,y+r);x.lineTo(X+w,y+h-r);
+  x.quadraticCurveTo(X+w,y+h,X+w-r,y+h);x.lineTo(X+r,y+h);x.quadraticCurveTo(X,y+h,X,y+h-r);x.lineTo(X,y+r);x.quadraticCurveTo(X,y,X+r,y);x.closePath();
+}
+function pad2(v){return (v<10?'0':'')+v;}
+function drawReport(sid,name){
+  var W=960,P=40,CW=W-2*P,INK='#15202b',MUT='#566575',LINE='#d3dbe3',SRC='#1f5fd1',OK='#17733f',BAD='#c0262d';
+  var data=[1,2,3,4].map(function(k){return {k:k,s:stat(k),qs:Q.filter(function(q){return q.stage===k;})};});
+  var tot={n:0,solved:0,tried:0,attempts:0};
+  data.forEach(function(d){tot.n+=d.s.n;tot.solved+=d.s.solved;tot.tried+=d.s.tried;tot.attempts+=d.s.attempts;});
+  var chipW=108,chipH=30,gap=8,perRow=Math.floor((CW+gap)/(chipW+gap));
+  var yTiles=216,yTable=312,tableH=40+5*36,yChips=yTable+tableH+40,chipsH=0;
+  data.forEach(function(d){chipsH+=30+Math.ceil(d.qs.length/perRow)*(chipH+gap)+10;});
+  var H=yChips+34+chipsH+40;
+  var c=document.createElement('canvas');c.width=W*2;c.height=H*2;
+  var x=c.getContext('2d');x.scale(2,2);
+  x.fillStyle='#ffffff';x.fillRect(0,0,W,H);
+  x.strokeStyle=LINE;x.lineWidth=2;x.strokeRect(1,1,W-2,H-2);
+  x.textBaseline='alphabetic';x.textAlign='left';
+  x.fillStyle=INK;x.font='700 28px '+FONT;x.fillText('이미지 행렬 실험실 · 학습 결과',P,72);
+  var now=new Date();
+  x.fillStyle=MUT;x.font='400 15px '+FONT;
+  x.fillText(now.getFullYear()+'-'+pad2(now.getMonth()+1)+'-'+pad2(now.getDate())+' '+pad2(now.getHours())+':'+pad2(now.getMinutes())+' 저장',P,100);
+  x.fillStyle='#f2f5f8';rr(x,P,128,CW,70,8);x.fill();
+  x.fillStyle=MUT;x.font='500 13px '+FONT;x.fillText('학번',P+18,154);x.fillText('이름',P+300,154);
+  x.fillStyle=INK;x.font='700 22px '+FONT;x.fillText(sid,P+18,184);x.fillText(name,P+300,184);
+  var tw=(CW-2*16)/3,tiles=[['맞힌 문제',tot.solved+' / '+tot.n,OK],['푼 문제',tot.tried+' / '+tot.n,SRC],['정답 확인 횟수',tot.attempts+'회',INK]];
+  tiles.forEach(function(t,i){
+    var tx=P+i*(tw+16);
+    x.strokeStyle=LINE;x.lineWidth=1.5;rr(x,tx,yTiles,tw,72,8);x.stroke();
+    x.fillStyle=MUT;x.font='500 13px '+FONT;x.fillText(t[0],tx+16,yTiles+26);
+    x.fillStyle=t[2];x.font='700 30px '+FONT;x.fillText(t[1],tx+16,yTiles+58);
+  });
+  var c2=W-P-300,c3=W-P-170,c4=W-P-14;
+  x.fillStyle='#eef2f6';x.fillRect(P,yTable,CW,40);
+  x.fillStyle=MUT;x.font='600 14px '+FONT;x.fillText('단계',P+14,yTable+26);
+  x.textAlign='right';x.fillText('푼 문제',c2,yTable+26);x.fillText('맞힌 문제',c3,yTable+26);x.fillText('정답 확인 횟수',c4,yTable+26);
+  var rows=data.map(function(d){return {t:d.k+'단계 '+STAGES[d.k],s:d.s,b:false};});
+  rows.push({t:'전체',s:tot,b:true});
+  rows.forEach(function(r,i){
+    var y=yTable+40+i*36;
+    x.strokeStyle=LINE;x.lineWidth=1;x.beginPath();x.moveTo(P,y+36);x.lineTo(P+CW,y+36);x.stroke();
+    x.fillStyle=INK;x.font=(r.b?'700 ':'400 ')+'15px '+FONT;
+    x.textAlign='left';x.fillText(r.t,P+14,y+24);
+    x.textAlign='right';x.fillText(r.s.tried+' / '+r.s.n,c2,y+24);x.fillText(r.s.solved+' / '+r.s.n,c3,y+24);x.fillText(r.s.attempts+'회',c4,y+24);
+  });
+  x.textAlign='left';x.fillStyle=INK;x.font='700 18px '+FONT;x.fillText('문제별 결과',P,yChips);
+  var y=yChips+22;
+  data.forEach(function(d){
+    x.fillStyle=MUT;x.font='600 14px '+FONT;x.textAlign='left';x.fillText(d.k+'단계 '+STAGES[d.k],P,y+14);
+    y+=24;
+    d.qs.forEach(function(q,i){
+      var st=QS[q.id]||{solved:false,attempts:0},col=i%perRow,row=Math.floor(i/perRow);
+      var cx=P+col*(chipW+gap),cy=y+row*(chipH+gap),fill,stroke,label,tc;
+      if(st.solved){fill='#e1f3e8';stroke=OK;label=q.id+' 정답 '+st.attempts+'회';tc=OK;}
+      else if(st.attempts>0){fill='#fbe4e5';stroke=BAD;label=q.id+' 오답 '+st.attempts+'회';tc=BAD;}
+      else{fill='#f2f5f8';stroke=LINE;label=q.id+' 미풀이';tc=MUT;}
+      x.fillStyle=fill;rr(x,cx,cy,chipW,chipH,6);x.fill();
+      x.strokeStyle=stroke;x.lineWidth=1.2;rr(x,cx,cy,chipW,chipH,6);x.stroke();
+      x.fillStyle=tc;x.font='600 13px '+FONT;x.textAlign='center';x.fillText(label,cx+chipW/2,cy+20);
+    });
+    x.textAlign='left';
+    y+=Math.ceil(d.qs.length/perRow)*(chipH+gap)+6;
+  });
+  x.textAlign='left';x.fillStyle=MUT;x.font='400 12px '+FONT;
+  x.fillText('푼 문제는 정답 확인을 한 번 이상 누른 문제입니다. 정답 확인 횟수는 정답을 맞히기까지 누른 횟수입니다.',P,H-20);
+  return c;
+}
+function saveImage(){
+  var sid=$('#sid').value.trim(),nm=$('#sname').value.trim();
+  if(!sid||!nm){toast('학번과 이름을 모두 입력해 주세요.');return;}
+  var ready=(document.fonts&&document.fonts.load)?document.fonts.load('700 20px "IBM Plex Sans KR"').catch(function(){}):Promise.resolve();
+  ready.then(function(){
+    var c=drawReport(sid,nm),url=c.toDataURL('image/png');
+    var box=$('#imgprev');box.innerHTML='';
+    var img=new Image();img.alt='학습 결과 이미지';img.src=url;box.appendChild(img);
+    var p=document.createElement('p');p.className='note';p.textContent='저장 창이 열리지 않으면 이미지를 길게 누르거나 오른쪽 클릭해서 저장하세요.';box.appendChild(p);
+    var fname='행렬실험실_'+sid+'_'+nm+'.png';fname=fname.replace(/[\\\/:*?"<>|]/g,'');
+    var cl=window.claude&&window.claude.use?window.claude.use('downloads'):Promise.resolve(null);
+    return Promise.resolve(cl).then(function(dl){
+      if(!dl){var an=document.createElement('a');an.href=url;an.download=fname;document.body.appendChild(an);an.click();an.remove();toast('이미지를 저장했습니다. 저장되지 않으면 아래 이미지를 길게 누르거나 오른쪽 클릭하세요.');return;}
+      return new Promise(function(res){c.toBlob(res,'image/png');}).then(function(blob){
+        return dl.save({filename:fname,data:blob});
+      }).then(function(){toast('이미지를 저장했습니다.');},function(err){
+        toast(err&&err.code==='declined'?'저장을 취소했습니다.':'저장 창을 쓸 수 없어요. 아래 이미지를 길게 누르거나 오른쪽 클릭해서 저장하세요.');
+      });
+    });
+  });
+}
+
+/* ---------- 단계 이동 ---------- */
+var cur=1,UPD={1:update1,2:update2,3:update3,4:update4};
+function go(k,noHash){
+  cur=k;
+  $$('.stage-sec').forEach(function(s){s.hidden=(+s.dataset.k!==k);});
+  $$('.step').forEach(function(b){if(+b.dataset.k===k){b.setAttribute('aria-current','step');}else{b.removeAttribute('aria-current');}});
+  UPD[k]();
+  if(!noHash){try{history.replaceState(null,'','#step'+k);}catch(e){}}
+  var t=$('#stepper');try{t.scrollIntoView({block:'start'});}catch(e){}
+}
+function fromHash(){var m=(location.hash||'').match(/^#step([1-4])$/);return m?+m[1]:1;}
+
+/* ---------- 이벤트 연결 ---------- */
+function reload(){loadSource();$$('#samples [data-id]').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-id')===G.src?'true':'false');});S1.X=null;UPD[cur]();}
+function toast(t){$('#toast').textContent=t;clearTimeout(toast.t);toast.t=setTimeout(function(){$('#toast').textContent='';},3500);}
+
+function init(){
+  var sp=$('#stepper');
+  [1,2,3,4].forEach(function(k){
+    var b=document.createElement('button');b.type='button';b.className='step';b.id='step'+k;b.dataset.k=k;
+    b.innerHTML='<span class="sn">'+k+'단계</span><span class="st">'+STAGES[k]+'</span><span class="sp"></span>';
+    b.addEventListener('click',function(){go(k);});sp.appendChild(b);
+  });
+  $$('[data-go]').forEach(function(b){b.addEventListener('click',function(){go(+b.dataset.go);});});
+  [1,2,3,4].forEach(function(k){Q.filter(function(q){return q.stage===k;}).forEach(function(q){mount(q,$('#'+(q.box||'quiz'+k)));});});
+
+  $$('#samples [data-id]').forEach(function(b){b.addEventListener('click',function(){G.src=b.getAttribute('data-id');reload();});});
+  $('#file').addEventListener('change',function(e){
+    var f=e.target.files&&e.target.files[0];if(!f){return;}
+    var rd=new FileReader();
+    rd.onload=function(){var img=new Image();img.onload=function(){G.upload=img;G.src='upload';$('#uploadChip').hidden=false;reload();};img.src=rd.result;};
+    rd.readAsDataURL(f);e.target.value='';
+  });
+  $('#res').addEventListener('change',function(e){G.n=+e.target.value;reload();});
+  $('#rng').addEventListener('change',function(e){G.range=+e.target.value;applyRange();UPD[cur]();});
+  $('#nums').addEventListener('change',function(e){G.nums=e.target.checked;UPD[cur]();});
+
+  /* 1단계 */
+  $$('input[name="s1side"]').forEach(function(r){r.addEventListener('change',function(){S1.side=r.value;update1();});});
+  $('#l1pre').addEventListener('click',function(e){
+    var b=e.target.closest('[data-p]');if(!b){return;}
+    var p=presets1(G.A.length).filter(function(x){return x.id===b.dataset.p;})[0];
+    S1.X=p.X.map(function(r){return r.slice();});
+    update1();
+  });
+  function toggleX(e){
+    var c=e.target.closest('.bc');if(!c||!c.classList.contains('edit')){return;}
+    var r=+c.dataset.r,k=+c.dataset.c;S1.X[r][k]=S1.X[r][k]?0:1;update1();
+  }
+  $('#l1L').addEventListener('click',toggleX);$('#l1R').addEventListener('click',toggleX);
+  wire($('#l1B'),function(r,c){hover1(r,c);},function(){clearHl();idle('#l1read',L1.idleMsg);});
+
+  /* 2단계 */
+  $('#s2crop').addEventListener('change',function(e){S2.crop=e.target.checked;update2();});
+  var lv2=function(){clearHl();idle('#l2read','칸에 마우스를 올리면 A와 Aᵀ에서 같은 화소가 어디로 가는지 표시됩니다.');};
+  wire($('#l2A'),function(r,c){hover2('A',r,c);},lv2);wire($('#l2T'),function(r,c){hover2('T',r,c);},lv2);
+
+  
+/* 3단계 */
+  $('#t3x').addEventListener('input',function(e){S3.tx=+e.target.value;update3();});
+  $('#t3y').addEventListener('input',function(e){S3.ty=+e.target.value;update3();});
+  $$('.n3').forEach(function(b){b.addEventListener('click',function(){S3.tx+=+b.dataset.dx;S3.ty+=+b.dataset.dy;update3();});});
+  $$('input[name="s3wrap"]').forEach(function(r){r.addEventListener('change',function(){S3.wrap=r.value==='1';update3();});});
+  var lv3=function(){clearHl();idle('#l3read','A의 칸에 마우스를 올리면 그 점이 이동한 위치가 표시됩니다.');};
+  wire($('#l3A'),function(r,c){hover3('A',r,c);},lv3);wire($('#l3B'),function(r,c){hover3('B',r,c);},lv3);
+
+  /* 4단계 */
+  ['#s4x','#s4y'].forEach(function(id){
+    $(id).innerHTML=FACTORS.map(function(f){return '<option value="'+f+'">'+FLAB[f]+'</option>';}).join('');$(id).value=2;
+  });
+  function sync4(){$('#s4x').value=S4.sx;$('#s4y').value=S4.sy;$('#s4y').disabled=S4.lock;}
+  $('#s4x').addEventListener('change',function(e){S4.sx=+e.target.value;if(S4.lock){S4.sy=S4.sx;}sync4();update4();});
+  $('#s4y').addEventListener('change',function(e){S4.sy=+e.target.value;update4();});
+  $('#s4lock').addEventListener('change',function(e){S4.lock=e.target.checked;if(S4.lock){S4.sy=S4.sx;}sync4();update4();});
+  var lv4=function(){clearHl();idle('#l4read','칸에 마우스를 올리면 A와 B에서 서로 대응하는 칸이 표시됩니다.');};
+  wire($('#l4A'),function(r,c){hover4('A',r,c);},lv4);wire($('#l4B'),function(r,c){hover4('B',r,c);},lv4);
+  sync4();
+
+  /* 학습 기록 */
+  $('#saveimg').addEventListener('click',saveImage);
+
+  
+/* 1단계 예시식 */
+  $('#ex1').innerHTML='<span class="mat"><em>S</em><sub>4</sub> = '+mini(supM(4),{j:1})+'</span><span class="mat"><em>J</em><sub>4</sub> = '+mini(exch(4),{j:1})+'</span><span class="note">S: 대각선 바로 위 성분이 1인 행렬, J: 반대 대각선 성분이 1인 행렬</span>';
+  $('#ex2').innerHTML='<span class="mat">'+mini([[1,2,3],[4,5,6]])+'<sup>T</sup></span><span>=</span>'+mini([[1,4],[2,5],[3,6]]);
+  $('#ex3').innerHTML=mini([['x′'],['y′']])+'<span>=</span>'+mini([['x'],['y']])+'<span>+</span>'+mini([['a'],['b']]);
+  $('#ex4').innerHTML=mini([['x′'],['y′']])+'<span>=</span>'+mini([['s<sub>x</sub>',0],[0,'s<sub>y</sub>']])+mini([['x'],['y']]);
+
+  $('#ex4b').innerHTML='<span class="mat">확대한 뒤 이동: '+mini([['s<sub>x</sub>',0],[0,'s<sub>y</sub>']])+mini([['x'],['y']])+'<span>+</span>'+mini([['a'],['b']])+'</span><span class="mat">이동한 뒤 확대: '+mini([['s<sub>x</sub>',0],[0,'s<sub>y</sub>']])+'<span>(</span>'+mini([['x'],['y']])+'<span>+</span>'+mini([['a'],['b']])+'<span>)</span></span>';
+  window.addEventListener('hashchange',function(){go(fromHash(),true);});
+  loadSource();refresh();go(fromHash(),true);
+}
+init();
+window.__lab={Q:Q,checkAnswer:checkAnswer,go:go,G:G};
+})();
+</script>
+
+</body>
+</html>
